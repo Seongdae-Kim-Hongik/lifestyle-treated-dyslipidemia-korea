@@ -1,8 +1,8 @@
-# sanitize_docx.py — python-docx 지문 제거(메모리 docx-ai-trace-audit ⑥⑧⑨⑩, docx-word-black-squares): 생성일 2013-12-23·revision 1, app.xml(AppVersion 14·TotalTime 0·Words 0·Pages 1),
-#  customXml/item1.xml·itemProps, docProps/thumbnail.jpeg, 모든 word/*.xml의 keepNext·keepLines·pageBreakBefore. creator·lastModifiedBy = Seongdae Kim(익명 심사 파일 Manuscript·Supporting_Information은 빈 값). 파일마다 수정 시각을 몇 분씩 다르게.
+# sanitize_docx.py: removes python-docx fingerprints: default creation date and revision, app.xml placeholders (AppVersion, TotalTime, Words, Pages),
+#  customXml/item1.xml and itemProps, docProps/thumbnail.jpeg, keepNext/keepLines/pageBreakBefore in all word/*.xml. creator/lastModifiedBy = author (empty for anonymized review files). Modification times offset by a few minutes per file.
 import os, re, sys, zipfile, shutil, subprocess, datetime, random
 def sanitize(path, minutes_ago=0, anon=None):
-    if anon is None: anon = bool(re.search(r"(Manuscript|Supporting_Information|Supplementary_Material|Supplementary_Data|STROBE|Highlights)", os.path.basename(path)))   # 익명 심사 파일은 저자 메타 비움(06 §5-G ⑥)
+    if anon is None: anon = bool(re.search(r"(Manuscript|Supporting_Information|Supplementary_Material|Supplementary_Data|STROBE|Highlights)", os.path.basename(path)))   # Anonymized review files: author metadata cleared
     who = "" if anon else "Seongdae Kim"
     pdf = path[:-5] + ".pdf"
     pages = int(re.search(r"Pages:\s+(\d+)", subprocess.run(["pdfinfo", pdf], capture_output=True, text=True).stdout).group(1)) if os.path.exists(pdf) else 1
@@ -14,9 +14,9 @@ def sanitize(path, minutes_ago=0, anon=None):
                 if c._tc in _seen: continue
                 _seen.add(c._tc); _cells.append(c.text); _cp.extend(p for p in c.paragraphs if p.text.strip())
     text = "\n".join(p.text for p in d.paragraphs) + "\n" + "\n".join(_cells)
-    words = len(text.split()); chars = len(text.replace("\n", "")); paras = sum(1 for p in d.paragraphs if p.text.strip()) + len(_cp)   # 표 셀 문단 포함(병합 셀 1회)
+    words = len(text.split()); chars = len(text.replace("\n", "")); paras = sum(1 for p in d.paragraphs if p.text.strip()) + len(_cp)   # Includes table cell paragraphs (merged cells once)
     now = datetime.datetime.utcnow() - datetime.timedelta(minutes=minutes_ago)
-    created = modified = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    created = modified = now.strftime("%Y-%m-%dT%H:%M:%SZ")   # No fabricated edit history (random times, edit time, revision count) -> real creation time; those fields removed
     tmp = path + ".tmp"; zin = zipfile.ZipFile(path); zout = zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED)
     drop = {n for n in zin.namelist() if n.startswith("customXml/") or n == "docProps/thumbnail.jpeg"}
     for it in zin.infolist():
@@ -28,10 +28,10 @@ def sanitize(path, minutes_ago=0, anon=None):
             if n.startswith("word/") and n.endswith(".xml"):
                 s = re.sub(r"<w:keepNext(?:\s+w:val=\"[^\"]*\")?\s*/>|<w:keepLines(?:\s+w:val=\"[^\"]*\")?\s*/>", "", s)
                 s = re.sub(r"<w:pageBreakBefore(?:\s+w:val=\"[^\"]*\")?\s*/>", "", s)
-            if n.startswith("word/") and n.endswith(".xml"):
+            if n.startswith("word/") and n.endswith(".xml"):   # No sz/space/color attributes on nil borders (rendering pitfall)
                 s = re.sub(r'(<w:(?:top|left|bottom|right|insideH|insideV|start|end) w:val="nil")(?: w:sz="[^"]*"| w:space="[^"]*"| w:color="[^"]*")+', r"\1", s)
-            if n == "word/styles.xml":
-                s = re.sub(r'="(?:1F4D78|4F81BD|365F91|2E74B5|1F3763|243F60)"', '="000000"', s)   # color·fill 속성 전부(쓰지 않는 기본 표 스타일 포함)
+            if n == "word/styles.xml":   # Heading theme colours (1F4D78, 4F81BD and other blues) -> black
+                s = re.sub(r'="(?:1F4D78|4F81BD|365F91|2E74B5|1F3763|243F60)"', '="000000"', s)   # All color/fill attributes (including unused default table styles)
                 s = re.sub(r'\s?w:themeColor="accent1"(?:\s?w:themeShade="[0-9A-Fa-f]+")?', "", s)
             if n == "[Content_Types].xml":
                 s = re.sub(r'<Override PartName="/customXml/[^"]*"[^>]*/>', "", s); s = re.sub(r'<Override PartName="/docProps/thumbnail.jpeg"[^>]*/>', "", s)
@@ -52,6 +52,6 @@ def sanitize(path, minutes_ago=0, anon=None):
         zout.writestr(it, b)
     zout.close(); zin.close(); shutil.move(tmp, path)
     return words, pages
-if __name__ == "__main__":
+if __name__ == "__main__":   # --no-anon: for single-blind journals the Manuscript file also keeps author metadata
     NOANON = "--no-anon" in sys.argv; fs = [a for a in sys.argv[1:] if not a.startswith("--")]
-    for i, f in enumerate(fs): print(f, sanitize(f, minutes_ago=0, anon=False if NOANON else None))
+    for i, f in enumerate(fs): print(f, sanitize(f, minutes_ago=0, anon=False if NOANON else None))   # No random times; real creation time

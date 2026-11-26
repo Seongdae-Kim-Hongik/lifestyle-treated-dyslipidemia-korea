@@ -1,6 +1,6 @@
-
-#  키 = 원고 원천(draft md + content_lipt.py)의 [@key]. manifest(ALL_refs.csv) PMID → PubMed esummary, 없으면 DOI → Crossref. 웹 문헌은 WEB 사전.
-#  EJCP 저자-연도 서식은 build_ejcp_crc.py가 이 캐시로 만든다(저자 성 = PubMed 이름에서 이니셜 제거).
+# build_refs_lipt.py: builds the reference metadata cache (refs_lipt.json). Network access happens only in this script.
+#  Keys = [@key] in the manuscript sources (draft md + content_lipt.py). manifest (ALL_refs.csv) PMID -> PubMed esummary, else DOI -> Crossref. Web sources from the WEB dict.
+#  Author-year formats can be built from this cache (author surname = PubMed name without initials).
 import os, re, json, time, urllib.request, urllib.parse, glob
 import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__)); MS = os.path.dirname(HERE)
@@ -38,14 +38,14 @@ for k in keys:
     yr = (m.get("published-print") or m.get("published-online") or m.get("issued"))["date-parts"][0][0]
     out[k] = dict(type="journal", authors=au, title=re.sub(r"<[^>]+>", "", (m.get("title") or [""])[0]), journal=jt, year=int(yr), vol=m.get("volume", ""), issue=m.get("issue", ""), pages=m.get("page", "") or m.get("article-number", ""), doi=doi, verified="Crossref " + time.strftime("%Y-%m-%d"))
     time.sleep(0.3)
-# 서식 통일: 학술지 MEDLINE 약어(마침표 없음), 쪽 범위 전체 표기, 대문자 제목 문장형
+# Normalization: MEDLINE journal abbreviations (no periods), full page ranges, sentence-case titles
 JN = {"Polit. Sci. Res. Methods": "Polit Sci Res Methods", "Geogr. Anal.": "Geogr Anal", "Stat. Sci.": "Stat Sci", "J R Stat Soc Series B Stat Methodol": "J R Stat Soc Series B Stat Methodol",
       "Journal of the Royal Statistical Society Series B: Statistical Methodology": "J R Stat Soc Series B Stat Methodol"}
 def fullp(p):
     m = re.match(r"^(\d+)-(\d+)$", str(p))
     if not m: return p
     a, b = m.groups(); return p if len(b) >= len(a) else f"{a}-{a[:len(a)-len(b)]+b}"
-FIXP = {}   # 전자 논문 번호(PubMed esummary pages 없음·마침표 붙음)
+FIXP = {}   # Electronic article numbers (PubMed esummary has no pages, trailing period)
 AHEAD = set()
 for k, v in out.items():
     if v.get("type") != "journal": continue
@@ -55,7 +55,7 @@ for k, v in out.items():
     v["pages"] = fullp(v.get("pages", "")) if k not in AHEAD else ""
     if v["title"].isupper(): v["title"] = v["title"].capitalize()
     v["authors"] = [a.title() if a.isupper() else a for a in v["authors"]]
-# 문장형 제목(제목형 대소문자 문헌만 직접 지정, 고유명사 유지)
+# Sentence-case titles (set directly only for title-case records; proper nouns kept)
 SENT = {
  "blanc2019occupational": "The occupational burden of nonmalignant respiratory diseases. An official American Thoracic Society and European Respiratory Society statement",
  "choi2020regional": "Regional variation of suicide mortality in South Korea",
@@ -81,19 +81,19 @@ SENT = {
 }
 for k, t in SENT.items():
     if k in out: out[k]["title"] = t
-for k, v in out.items():   # 콜론 뒤 첫 글자 소문자(고유명사·약어 제외)
+for k, v in out.items():   # Lower-case first letter after a colon (except proper nouns and abbreviations)
     if v.get("type") == "journal":
         v["title"] = re.sub(r":\s+([A-Z][a-z]*)\b", lambda m: ": " + (m.group(1) if m.group(1) in ("Korea", "Korean", "South", "Bayesian", "Spatial", "E", "GLOBOCAN", "COPD") else m.group(1).lower()), v["title"])
-# PubMed 저자명 뒤집힘 교정(2026-11-06 조테로 검증에서 발견: PubMed 27794523이 "Cheol Seong S", "Heon Park J"로 색인 — 원문 Sang Cheol Seong, Jong Heon Park)
+# Fix reversed PubMed author names (PubMed 27794523 indexes "Cheol Seong S", "Heon Park J"; original Sang Cheol Seong, Jong Heon Park)
 AUTHOR_FIX = {"Cheol Seong S": "Seong SC", "Heon Park J": "Park JH", "Hyon Bang J": "Bang JH", "Ae Shin S": "Shin SA", "Elise Eggen A": "Eggen AE"}
 for _k, _v in out.items():
     if isinstance(_v.get("authors"), list): _v["authors"] = [AUTHOR_FIX.get(a, a) for a in _v["authors"]]
 assert not any("Cheol Seong" in a for v in out.values() if isinstance(v.get("authors"), list) for a in v["authors"])
-
+# Fix source metadata errors (backtick in a PubMed title, missing MDPI article number)
 if "salerno2023alzheimers" in out: out["salerno2023alzheimers"]["title"] = out["salerno2023alzheimers"]["title"].replace("`", "'")
 if "lim2022predictive" in out: out["lim2022predictive"].update(issue="9", pages="1388")
 json.dump(out, open(os.path.join(HERE, "refs_lipt.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 import re as _re
-for _k, _v in out.items():
+for _k, _v in out.items():   # Check for reversed Korean names (two-syllable given name + one-letter initial)
     if isinstance(_v.get("authors"), list): assert not [a for a in _v["authors"] if a not in ("Tchetgen Tchetgen E", "Mejia Arango S", "Davey Smith G", "De Castro P", "Singh Gurung M") and _re.fullmatch(r"[A-Z][a-z]+ [A-Z][a-z]+ [A-Z]", a)], (_k, _v["authors"])
 print(len(keys), "keys;", sum(v["type"] == "journal" for v in out.values()), "journal,", sum(v["type"] == "web" for v in out.values()), "web")

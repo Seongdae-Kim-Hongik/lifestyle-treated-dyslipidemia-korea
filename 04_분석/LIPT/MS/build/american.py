@@ -1,4 +1,4 @@
-
+# american.py: converts British-spelling draft strings to American spelling just before output (reference metadata kept as in the source).
 import re
 from british import STEMS, WORDS
 REV = {v: k for k, v in WORDS.items() if v not in ("per cent", "analyses")}

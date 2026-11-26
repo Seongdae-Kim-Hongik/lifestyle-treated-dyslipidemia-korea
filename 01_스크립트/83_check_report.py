@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 83_check_report.py - consistency checks on the core report.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import sys, os, re, glob, subprocess, json
 import pandas as pd
 from pypdf import PdfReader

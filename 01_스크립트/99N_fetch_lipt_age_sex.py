@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 99N_fetch_lipt_age_sex.py - national attendees and treated dyslipidemia by sex and age (KOSIS Open API).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, json, time, urllib.request, urllib.parse
 import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)

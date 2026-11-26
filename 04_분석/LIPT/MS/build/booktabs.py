@@ -1,7 +1,7 @@
-# booktabs.py — 저장 직전 모든 표를 플레이북 06 §6-B 규격(엄격 3선)으로 통일
-#  위선 sz6 + 머리행 아래선 sz4 + 마지막 행 아래선 sz6(셀 수준), 세로줄·행간선·음영·표 스타일 없음,
-#  고정 레이아웃, 표 폭 = 그 표가 속한 섹션의 사용 폭(gridCol 비례 확대·축소, tcW는 gridSpan 고려).
-#  2026-10-21 SPPE ESM_2가 'Table Grid'(격자선)로 나간 사고 뒤 도입.
+# booktabs.py: just before saving, normalizes every table to a strict three-rule layout
+#  top rule sz6 + rule below the header row sz4 + rule below the last row sz6 (cell level); no vertical rules, row rules, shading or table style;
+#  fixed layout; table width = usable width of its section (gridCol scaled proportionally; tcW respects gridSpan).
+#  Prevents tables being exported with the 'Table Grid' style (grid lines).
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
@@ -12,7 +12,7 @@ def _border(parent, edge, val, sz):
     e.set(qn("w:val"), val); e.set(qn("w:sz"), str(sz)); e.set(qn("w:space"), "0"); e.set(qn("w:color"), "000000")
 
 def _usable_twips(doc):
-    """본문 요소 순서대로 각 표가 속한 섹션의 사용 폭(twips)을 돌려준다."""
+    """Return the usable width (twips) of the section holding each table, in body order."""
     body = doc.element.body; out = []; pending = []
     secs = iter(doc.sections); sec = next(secs)
     for el in body.iterchildren():
@@ -40,7 +40,7 @@ def fix(doc):
         if lay is None:
             lay = OxmlElement("w:tblLayout"); tblPr.append(lay)
         lay.set(qn("w:type"), "fixed")
-        # 폭: gridCol 비례 → 섹션 사용 폭
+        # Width: gridCol proportions -> section usable width
         gcs = tbl.find(qn("w:tblGrid")).findall(qn("w:gridCol"))
         ws = [int(g.get(qn("w:w")) or 0) for g in gcs]
         if sum(ws) <= 0: ws = [1] * len(gcs)
@@ -53,7 +53,7 @@ def fix(doc):
         rows = tbl.findall(qn("w:tr"))
         hdr_idx = [i for i, r in enumerate(rows) if r.find(qn("w:trPr")) is not None and r.find(qn("w:trPr")).find(qn("w:tblHeader")) is not None]
         hlast = hdr_idx[-1] if hdr_idx and hdr_idx == list(range(len(hdr_idx))) else 0
-
+        # Footnote row: if the last row is one cell spanning all columns and the row before has several cells, it is a footnote row -> bottom rule under the previous row, no rules on the footnote row, no rule under the table
         def _ntc(r): return len(r.findall(qn("w:tc")))
         foot = len(rows) >= 3 and _ntc(rows[-1]) == 1 and _ntc(rows[-2]) > 1
         lastdata = len(rows) - 2 if foot else len(rows) - 1
@@ -79,11 +79,11 @@ def fix(doc):
                 elif i == lastdata: _border(cb, "bottom", "single", 6)
                 else: _border(cb, "bottom", "nil", 0)
                 _border(cb, "right", "nil", 0)
-                # tcBorders는 tcW·gridSpan 뒤, shd·vAlign 앞(스키마 순서)
+                # tcBorders after tcW/gridSpan and before shd/vAlign (schema order)
                 anchor = next(x for x in (tcPr.find(qn("w:vMerge")), span, tcw) if x is not None)
                 anchor.addnext(cb)
         for s in tbl.iter(qn("w:shd")): s.getparent().remove(s)
-
+        # Single tblLayout, 40-twip left/right cell margins, tblPr children in schema order
         lays = tblPr.findall(qn("w:tblLayout"))
         for x in lays[1:]: tblPr.remove(x)
         cm = tblPr.find(qn("w:tblCellMar"))

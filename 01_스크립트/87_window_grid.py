@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # 87_window_grid.py - window grid figure.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, unicodedata
 import numpy as np, pandas as pd
 import matplotlib as mpl; mpl.use("Agg"); import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-TAG = sys.argv[1]; VER = sys.argv[2] if len(sys.argv) > 2 else "v1"; SUF = "" if VER in ("", "v1") else f"_{VER}"
+TAG = sys.argv[1]; VER = sys.argv[2] if len(sys.argv) > 2 else "std3"; SUF = "" if VER == "" else f"_{VER}"
 HERE = os.path.dirname(os.path.abspath(__file__)); OUT = os.path.join(os.path.dirname(HERE), "04_분석", TAG)
 RES = os.path.join(OUT, f"results{SUF}"); FIG = os.path.join(OUT, f"figs{SUF}"); os.makedirs(FIG, exist_ok=True)
 mpl.rcParams.update({"font.family": ["Helvetica Neue", "Arial", "Apple SD Gothic Neo", "AppleGothic"], "font.size": 9, "pdf.fonttype": 42})

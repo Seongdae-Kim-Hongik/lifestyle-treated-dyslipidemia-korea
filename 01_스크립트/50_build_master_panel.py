@@ -1,5 +1,5 @@
 # 50_build_master_panel.py - district-year master table from public statistics.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, re, sys, importlib.util, datetime
 import numpy as np, pandas as pd
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 38_build_Estd_all.py - expected counts by indirect standardization (shared helper).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, re, sys, glob, json, importlib.util, struct, zlib
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr

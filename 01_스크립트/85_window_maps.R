@@ -1,8 +1,8 @@
 # 85_window_maps.R - window maps of relative risk.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 suppressPackageStartupMessages({library(INLA);library(sf);library(spdep);library(jsonlite);library(ggplot2);library(dplyr)})
-args<-commandArgs(trailingOnly=TRUE);TAG<-args[1];VER<-if(length(args)>=2)args[2] else "v1";stopifnot(!is.na(TAG))
-SUF<-if(VER %in% c("","v1"))"" else paste0("_",VER)
+args<-commandArgs(trailingOnly=TRUE);TAG<-args[1];VER<-if(length(args)>=2)args[2] else "std3";stopifnot(!is.na(TAG))
+SUF<-if(VER=="")"" else paste0("_",VER)
 ROOT<-normalizePath(file.path(dirname(sub("--file=","",grep("--file=",commandArgs(),value=TRUE))),".."))
 SHP<-Sys.getenv("ST_SHP",file.path(normalizePath(file.path(dirname(sub("--file=","",grep("--file=",commandArgs(),value=TRUE))),"..")),"data","boundary","final.shp"))
 OUTD<-file.path(ROOT,"04_분석",TAG);RES<-file.path(OUTD,paste0("results",SUF));FIG<-file.path(OUTD,paste0("figs",SUF));dir.create(FIG,showWarnings=FALSE)

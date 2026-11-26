@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 82L_core_report_nwin.py - core result report.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import sys, os, json, re, subprocess, unicodedata
 import numpy as np, pandas as pd
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt; import matplotlib.font_manager as fm

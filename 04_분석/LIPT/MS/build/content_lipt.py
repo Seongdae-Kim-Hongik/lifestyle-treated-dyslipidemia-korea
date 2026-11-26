@@ -1,10 +1,10 @@
-# content_lipt.py — 치료 중 이상지질혈증(LIPT) 원고의 Methods·Results 문장(수치는 numbers_lipt에서만).
-#  인용 = [@key] 또는 [@web:...]; 번호식. 단독 저자 → 1인칭 금지. 영국식 철자(dyslipidaemia), 결과 절 해석 금지.
-#  제목 쌍점 금지, 시리즈 제목 틀 반복 금지.
+# content_lipt.py: Methods and Results sentences for the treated-dyslipidaemia (LIPT) manuscript (values only from numbers_lipt).
+#  Citations = [@key] or [@web:...], numbered. Single author -> no first person. British spelling (dyslipidaemia); no interpretation in Results.
+#  No colons in titles.
 from numbers_lipt import load, ROB, RS, EDU, IMS, MPA
 import os, pandas as pd
 N = load()
-def fh(x): return f"{x:.4f}" if (f"{x:.3f}" == "1.000" and f"{x:.4f}" != "1.0000") else f"{x:.3f}"   # 1을 가까스로 배제하는 상한은 4자리
+def fh(x): return f"{x:.4f}" if (f"{x:.3f}" == "1.000" and f"{x:.4f}" != "1.0000") else f"{x:.3f}"   # Upper bounds that barely exclude 1 use 4 decimals
 def ci(v, src=None):
     r = (src or N["main"])[v]; return f"RR {r['IRR']:.3f}; 95% CrI {r['lo']:.3f}–{fh(r['hi'])}"
 def tci(t): return f"RR {t[0]:.3f}; 95% CrI {t[1]:.3f}–{fh(t[2]) if len(t) > 3 and t[3] else f'{t[2]:.3f}'}"
@@ -47,7 +47,7 @@ BEST = min(KH, key=lambda a: N["s43_waic"][a])
 _EPP = float(pd.read_csv(os.path.join(RS, "S10_offset_sensitivity_IRR.csv")).set_index("cov").loc[MPA, "P_gt1"]); assert _EPP < 0.025
 Y0, Y1 = N["pos_y"][2011], N["pos_y"][2024]
 
-# 결과 주장 점검용 보조값
+# Helper values for checking result claims
 _Y = N["jg_yoy"]; _y1 = [_Y[y] for y in range(2012, 2018)]; _y2 = [_Y[y] for y in range(2019, 2025)]
 assert _Y[2018] < min(_y1 + _y2) and N["jg_meas"][2018] < 0.36
 _w1 = N['win_irr'][(EDU, 'W1_2011-17')]; _w2 = N['win_irr'][(EDU, 'W2_2018-24')]; _l1 = N['s41'][('E1_lag1', EDU)]; _l2 = N['s41'][('E2_lag2', EDU)]
@@ -64,14 +64,14 @@ _X = N["xf"]; _xt = lambda k, v: tci(_X[k][v])
 _cr = [v for v in ("screening_uptake", "basic_livelihood_rate", "single_person_household_share") if _X["E_crude"][v][3]]; assert len(_cr) == 3
 _oa = _X["add_out_of_area_care"]; _e84 = N["e084"]; _VP = N["varpart"]; _A = N["retention"]; _RB = N["rubin"]; _E = N["main"]
 
-# 보충 자료 인용 자리(키 → 인용 문구). 저널판이 번호를 정한 사전을 넘긴다.
+# Supplementary citation slots (key -> label). The journal build passes a numbered map.
 SUPKEYS = ("judgement", "methods", "covariates", "checks", "specs", "strobe", "persistence", "fig_observed", "spec_tables", "spec_table",
            "kh_table", "windows", "window_table", "posthoc")
 ETHICS = "The institutional review board of Hongik University approved the study and waived informed consent because only published aggregate statistics were used."
 
 
 def texts(ethics, S):
-    """Methods·Results 문장 (제목, 문장) 목록. ethics = 윤리 문장, S = 보충 인용 사전(SUPKEYS)."""
+    """List of Methods and Results (heading, sentence) pairs. ethics = ethics sentence, S = supplementary citation map (SUPKEYS)."""
     methods = [
 ("Design, outcome and population",
  f"This ecological study used the general health screening programme of the National Health Insurance Service, which draws on a national database covering the whole population [@cheolseong2017data] and is offered every 2 years to insured adults [@seong2017cohort]. The screening judgement places attendees who report a physician diagnosis of dyslipidaemia and current drug treatment in a separate category of existing disease; the annual number of attendees in this category was the outcome, here called treated dyslipidaemia. "
@@ -87,8 +87,8 @@ def texts(ethics, S):
  "Care reach and selection: internal-medicine specialists per 100,000 population (expected positive), health-screening uptake (negative) and the share of adults with tertiary education (positive). "
  "Lifestyle-related risk factors: obesity, high-risk drinking and current smoking (positive), and walking, moderate-to-vigorous physical activity and public sports facilities per 100,000 (negative); behavioural rates came from the Community Health Survey [@kang2015korea]. "
  "Deprivation and household: basic livelihood security receipt and single-person households (negative). "
- "Expected directions were informed by evidence that screening participation is selective and attendees differ from non-attendees [@park2021association], that education is associated with lipid testing [@marcus2021unmet], that exercise training modestly improves blood lipids [@kodama2007effect; @smart2025effect] and that poorer people are less adherent to statins [@wallachkildemoes2013adherence], and by the assumption that living alone may reduce support for care. "
- "Five controls were forced into every model: urban population share, physicians per 1,000, sex ratio, fiscal autonomy and the share aged 80 years or older. Population density was not included because it is a marker of urbanicity, which the forced urban population share already represents, rather than a separate pathway to treated dyslipidaemia. "
+ "Expected directions were informed by evidence that screening participation is selective and attendees differ from non-attendees [@park2021association], that education is associated with lipid testing [@marcus2021unmet], that weight loss lowers low-density lipoprotein cholesterol and triglycerides [@dattilo1992effects], that heavy drinking may raise triglycerides [@brien2011effect], that smoking is associated with higher triglycerides and lower high-density lipoprotein cholesterol [@craig1989cigarette], that exercise training modestly improves blood lipids [@kodama2007effect; @smart2025effect] and that poorer people are less adherent to statins [@wallachkildemoes2013adherence], and by the assumption that living alone may reduce support for care. "
+ "Five controls were forced into every model: urban population share, physicians per 1,000, sex ratio, fiscal autonomy and the share aged 80 years or older; treatment differs by sex, age and urban or rural residence [@lee2025national], and household and regional factors, including single-person households and local welfare budgets, are associated with screening participation [@park2022multi]. Population density was not included because it is a marker of urbanicity, which the forced urban population share already represents, rather than a separate pathway to treated dyslipidaemia. "
  f"Internal-medicine specialist density was transformed to log(1 + specialists per 100,000), and covariates were standardised to 1 standard deviation (SD); missing years were filled by within-district interpolation, or by district or year means where a district had no observations; basic livelihood security rates were recomputed from official recipient counts of the Ministry of Health and Welfare, which replaced the source-table values, including values that had collapsed or been inflated in 2021–2023 for cities divided into general districts ({S['covariates']}; checks in {S['checks']})."),
 ("Statistical analysis",
  f"The likelihood (Poisson or negative binomial) was chosen by the lower widely applicable information criterion (WAIC) of the forced-controls model; zero-inflated models were not considered because the smallest expected number in any district-year was {N['E_min']:.1f} and no district-year had a zero count. "
@@ -108,13 +108,13 @@ def texts(ethics, S):
  "A secondary analysis fixed in advance compared each district's treatment ratio with its standardised ratio of suspected dyslipidaemia, the screening judgement of suspected disease given to attendees whose lipid tests were abnormal without treatment, using Spearman correlation with a district bootstrap interval and the spatial autocorrelation of the log ratio between them. "
  "The thresholds for suspected dyslipidaemia were lower in 2014–2015 (total cholesterol ≥230 mg/dL and low-density lipoprotein cholesterol ≥150 mg/dL, otherwise ≥240 and ≥160 mg/dL), and from 2018 only about one-third of attendees had a lipid panel, so suspected ratios were standardised within each window. "
  "After the results were seen, an association against the expected direction was examined post hoc with a single-covariate model; removal of physician density, tertiary education, or physician density and urban share; one-way district-mean and within-district parts; addition of unmet medical need and the shares of attendees treated for hypertension or diabetes; and specialist density per area. "
- "Further post hoc analyses were crude expected numbers (attendees multiplied by the national crude share), expected numbers from fixed 2015 national shares or with the shares at ages 75 years or older changed by 10%, exclusion of districts whose territory changed, addition of the share of patients treated outside their district of residence or of clinic or care-institution density, refits without filled cells or without 2020–2021, alternative priors for the BYM2 mixing parameter, a screening-based obesity proxy and a restricted spatial regression. Region-specific slopes were compared with the lower-WAIC of 2 baselines (common slopes, and common slopes with region main effects): a ΔWAIC of −6 or less was read as support for regional heterogeneity, −6 to −4 as weak support, −4 to 4 as no difference and more than 4 as favouring common slopes; these thresholds were set after the principal results were known."),
+ "Further post hoc analyses were crude expected numbers (attendees multiplied by the national crude share), expected numbers from fixed 2015 national shares or with the shares at ages 75 years or older changed by 10%, exclusion of the 3 districts whose territory or province changed and of 4 further districts with name or status changes, addition of the share of patients treated outside their district of residence or of clinic or care-institution density, refits without filled cells, without 2020–2021 or from 2015 onwards, alternative priors for the BYM2 mixing parameter, a screening-based obesity proxy and a restricted spatial regression. Region-specific slopes were compared with the lower-WAIC of 2 baselines (common slopes, and common slopes with region main effects): a ΔWAIC of −6 or less was read as support for regional heterogeneity, −6 to −4 as weak support, −4 to 4 as no detectable difference and more than 4 as favouring common slopes; these thresholds were set after the principal results were known."),
 ("Ethics statement and reporting",
  ethics + f" Reporting follows the Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) statement [@vonelm2007strengthening] ({S['strobe']})."),
 ]
     results = [
 ("Treated dyslipidaemia among attendees",
- f"Over 2011–2024, {N['exam_total']/1e6:.1f} million screening attendances included {N['cases_total']:,} attendances with treated dyslipidaemia (Table 1); people screened in several years contribute more than once. The crude share rose from {Y0:.1f}% in 2011 to {Y1:.1f}% in 2024, without a fall at the 2018 change in the testing schedule, although the annual increase slowed in that year ({_Y[2018]:.1f}%, against {min(_y1):.1f}–{max(_y1):.1f}% in 2012–2017 and {min(_y2):.1f}–{max(_y2):.1f}% in 2019–2024)."),
+ f"Over 2011–2024, {N['exam_total']/1e6:.1f} million screening attendances included {N['cases_total']:,} attendances with treated dyslipidaemia (Table 1); people screened in several years contribute more than once. The crude share rose from {Y0:.1f}% in 2011 to {Y1:.1f}% in 2024, without a fall at the 2018 change in the testing schedule, although the annual increase in the national table slowed in that year ({_Y[2018]:.1f}%, against {min(_y1):.1f}–{max(_y1):.1f}% in 2012–2017 and {min(_y2):.1f}–{max(_y2):.1f}% in 2019–2024)."),
 ("Spatial pattern",
  f"Moran's I of observed log ratios was {N['moran_pooled']:.2f} pooled over years and ranged from {N['moran_year_min']:.2f} to {N['moran_year_max']:.2f} annually, without a monotonic trend over 2011–2024 (Kendall's τ {N['moran_year_tau'][0]:.2f}); the BYM2 spatial fraction was {N['phi'][0]:.2f} (95% CrI {N['phi'][1]:.2f}–{N['phi'][2]:.2f}). "
  f"Residual RRs ranged from {N['rr_min']:.2f} to {N['rr_max']:.2f}, with {N['n_hot']} covariate-adjusted residual hot spots, mainly in {sidos(N['hot_by_sido'], 4)}, and {N['n_cold']} cold spots, mainly in {sidos(N['cold_by_sido'], 4)} (Fig. 1A); {N['n_hot_rr110']} of the hot spots had a residual RR of 1.10 or more and {N['n_cold_rr090']} of the cold spots 0.90 or less. "
@@ -138,9 +138,9 @@ def texts(ethics, S):
  f"Of the other covariates, physician density, a forced control, became credible in type IV ({tci(S43('KH_typeIV', 'physicians_per_1000'))}) and single-person households in type I ({tci(S43('KH_typeI', 'single_person_household_share'))}); all changes in credibility are listed in {S['kh_table']}. "
  f"High-risk drinking was positively associated in 2011–2017 only ({tci(_drk)}) and walking, against the expected direction, in 2018–2024 only ({tci(N['win_irr'][('walking_practice_rate', 'W2_2018-24')])}); {N['n_win_int']} of the {NHYP} covariates had credible interactions with calendar window and {N['covid_nint']} with the period from 2020 onwards ({S['window_table']}). "
  f"Across {_A[EDU]['n_specs']} alternative specifications, tertiary education was credible in {_A[EDU]['kept']}, specialist density in {_A[IMS]['kept']} and activity in {_A[MPA]['kept']}. "
- f"With filled values perturbed 20 times, these 3 covariates were credible in {_RB[EDU]['n_cred']}, {_RB[IMS]['n_cred']} and {_RB[MPA]['n_cred']} of 20 fits, with pooled RRs of {_RB[EDU]['IRR_pooled']:.3f}, {_RB[IMS]['IRR_pooled']:.3f} and {_RB[MPA]['IRR_pooled']:.3f} against {_E[EDU]['IRR']:.3f}, {_E[IMS]['IRR']:.3f} and {_E[MPA]['IRR']:.3f} in the principal model. "
+ f"With filled values perturbed 20 times, these 3 covariates were credible in {_RB[EDU]['n_cred']}, {_RB[IMS]['n_cred']} and {_RB[MPA]['n_cred']} of 20 fits, with pooled RRs of {_RB[EDU]['IRR_pooled']:.3f} (95% CrI {_RB[EDU]['lo']:.3f}–{_RB[EDU]['hi']:.3f}), {_RB[IMS]['IRR_pooled']:.3f} (95% CrI {_RB[IMS]['lo']:.3f}–{_RB[IMS]['hi']:.3f}) and {_RB[MPA]['IRR_pooled']:.3f} (95% CrI {_RB[MPA]['lo']:.3f}–{_RB[MPA]['hi']:.3f}) against {_E[EDU]['IRR']:.3f}, {_E[IMS]['IRR']:.3f} and {_E[MPA]['IRR']:.3f} in the principal model. "
  f"Tertiary education stayed credible when each province ({LO[('province', EDU)][1]} of {LO[('province', EDU)][0]}) or year ({LO[('year', EDU)][1]} of {LO[('year', EDU)][0]}) was left out. E-values were {N['evalue'][EDU]['E_point']:.2f} for education, {N['evalue'][IMS]['E_point']:.2f} for specialists and {N['evalue'][MPA]['E_point']:.2f} for activity, and, against the better-fitting of 2 baselines (common slopes), region-specific slopes lowered WAIC for specialist density (ΔWAIC {N['region_dwaic'][IMS]:.1f}) but not for moderate-to-vigorous activity ({N['region_dwaic'][MPA]:+.1f}); for tertiary education the region-specific model fitted much worse ({N['region_dwaic'][EDU]:+.1f}) and was unstable, so regional differences in the education association could not be estimated ({S['specs']}). "
- f"With expected numbers from residents, education remained credible ({tci(N['epop'][EDU])}), activity was credible at the margin (RR {_mpaE[0]:.3f}; 95% CrI {_mpaE[1]:.3f}–{_mpaE[2]:.3f}, upper bound below 1 before rounding; posterior probability of RR above 1, {_EPP:.3f}), and specialist density was not credibly associated ({tci(N['epop'][IMS])}). "
+ f"With expected numbers from residents, education remained credible ({tci(N['epop'][EDU])}), activity was credible at the margin (RR {_mpaE[0]:.3f}; 95% CrI {_mpaE[1]:.3f}–{_mpaE[2]:.3f}, upper bound below 1 before rounding; posterior probability of RR above 1, {_EPP:.3f}), specialist density was not credibly associated ({tci(N['epop'][IMS])}), and health-screening uptake, not credible with attendee-based expected numbers, became positively associated, against its expected direction ({tci(N['epop']['screening_uptake'])}); the other hypothesis covariates were not credibly associated (Table 2). "
  f"With crude expected numbers, in which sex and age entered only through the forced sex ratio and share aged 80 years or older, tertiary education was not credibly associated ({_xt('E_crude', EDU)}), whereas screening uptake ({_xt('E_crude', 'screening_uptake')}), basic livelihood receipt ({_xt('E_crude', 'basic_livelihood_rate')}) and single-person households ({_xt('E_crude', 'single_person_household_share')}) were; with expected numbers from fixed 2015 national shares, education remained credible ({_xt('E_fix2015', EDU)}). "
  f"Excluding the 3 districts whose territory or province changed during 2011–2024, education ({_xt('D145_drop_boundary3', EDU)}) and moderate-to-vigorous activity ({_xt('D145_drop_boundary3', MPA)}) remained credible, whereas specialist density did not ({_xt('D145_drop_boundary3', IMS)}). "
  f"In the comparison outcomes, education had an RR of {N['nco'][('INFECT', EDU)][0]:.3f} for infectious disease (95% CrI {N['nco'][('INFECT', EDU)][1]:.3f}–{N['nco'][('INFECT', EDU)][2]:.3f}) and {N['nco'][('GCA', EDU)][0]:.3f} for gastric cancer (95% CrI {N['nco'][('GCA', EDU)][1]:.3f}–{N['nco'][('GCA', EDU)][2]:.3f}), and specialist density {N['nco'][('INFECT', IMS)][0]:.3f} (95% CrI {N['nco'][('INFECT', IMS)][1]:.3f}–{N['nco'][('INFECT', IMS)][2]:.3f}) and {N['nco'][('GCA', IMS)][0]:.3f} (95% CrI {N['nco'][('GCA', IMS)][1]:.3f}–{N['nco'][('GCA', IMS)][2]:.3f}); these coefficients were not formally compared with those for treated dyslipidaemia. "
@@ -153,14 +153,14 @@ def texts(ethics, S):
  f"District treatment ratios were weakly and inversely correlated with ratios of suspected dyslipidaemia (Spearman's ρ {_rb[0]:.2f}; 95% bootstrap interval {_rb[1]:.2f} to {_rb[2]:.2f}). Of {G_['n']} districts, {G_['quadrants']['treated high / suspected low']} had a treatment ratio above 1 with a suspected ratio of 1 or less, mostly in Seoul and Gyeonggi, and {G_['quadrants']['treated low / suspected high']} the reverse, mostly in the Jeolla provinces, Busan and the Gyeongsang and Chungcheong provinces (Fig. 1B). The log ratio between treated and suspected dyslipidaemia was spatially clustered (Moran's I {G_['moran_G']:.2f}) and correlated with tertiary education (ρ {G_['rho_G_tertiary']:.2f}) and inversely with specialist density (ρ {G_['rho_G_im']:.2f})."),
 ]
     import re as _re2
-    _mn = lambda t: _re2.sub(r"(^|[\s(;,])-(?=\d)", "\\1\u2212", t)   # 음수는 진짜 마이너스(U+2212)
+    _mn = lambda t: _re2.sub(r"(^|[\s(;,])-(?=\d)", "\\1\u2212", t)   # Negative values use a true minus sign (U+2212)
     return [(h, _mn(t)) for h, t in methods], [(h, _mn(t)) for h, t in results]
 
 
-# 기본판(보충 번호 없음). 저널판은 texts(ETHICS, SUPMAP)으로 다시 만든다.
+# Default build (no supplementary numbers). The journal build calls texts(ETHICS, SUPMAP) again.
 METHODS, RESULTS = texts(ETHICS, {k: "the Supplementary Material" for k in SUPKEYS})
 
-# 문장 주장 대조(결과표와 어긋나면 빌드 중단)
+# Check sentence claims against the result tables (stop the build on mismatch)
 assert N["n_cred_hyp"] == 3 and N["n_robust"] == 3 and N["waic_main"] > N["waic_forced"] and BEST == "KH_typeII"
 assert all(M[v]["cred"] for v in ROB) and M[EDU]["IRR"] > 1 and M[IMS]["IRR"] < 1 and M[MPA]["IRR"] < 1
 assert not any(M[v]["cred"] for v in NULLV) and N["negctl"]["fires_per_10000"]["cred"] and not N["negctl"]["hit_and_run_rate"]["cred"] and not N["negctl"]["waste_recycling_rate"]["cred"]
@@ -169,12 +169,14 @@ assert not S43("KH_typeII", IMS)[3] and not S43("KH_typeIV", IMS)[3]
 assert all(N["win_irr"][(EDU, w)][3] for w in ("W1_2011-17", "W2_2018-24")) and not any(N["win_irr"][(v, w)][3] for v in (IMS, MPA) for w in ("W1_2011-17", "W2_2018-24"))
 assert N['win_irr'][('walking_practice_rate', 'W2_2018-24')][3] and N['win_irr'][('walking_practice_rate', 'W2_2018-24')][0] > 1 and not N['win_irr'][('walking_practice_rate', 'W1_2011-17')][3]
 assert N["epop"][EDU][3] and N["epop"][MPA][3] and not N["epop"][IMS][3]
+assert {v for v in NULLV + [EDU, IMS, MPA] if N["epop"][v][3]} == {EDU, MPA, "screening_uptake"} and N["epop"]["screening_uptake"][0] > 1 and not M["screening_uptake"]["cred"]
+assert all(N["rubin"][v]["lo"] < N["rubin"][v]["IRR_pooled"] < N["rubin"][v]["hi"] for v in (EDU, IMS, MPA))
 assert S46("P2_alone", IMS)[3] and S46("P3c_drop_physicians_urban", IMS)[3] and S46("P4_between_within", IMS + "__B")[3] and not S46("P4_between_within", IMS + "__W")[3]
-assert not S46("P5_per_area", "spec_per_km2_log")[3] and not S46("P5b_both", "spec_per_km2_log")[3] and S46("P5b_both", IMS)[3]   # 면적당 전문의 밀도는 단독·동시 투입 모두 비credible
+assert not S46("P5_per_area", "spec_per_km2_log")[3] and not S46("P5b_both", "spec_per_km2_log")[3] and S46("P5b_both", IMS)[3]   # Specialist density per area is not credible, alone or jointly
 assert S43("KH_typeIV", "physicians_per_1000")[3] and not M["physicians_per_1000"]["cred"] and S43("KH_typeI", "single_person_household_share")[3] and not M["single_person_household_share"]["cred"]
 assert N["region_dwaic"][IMS] <= -6 and N["region_dwaic"][MPA] > -4 and N["region_dwaic"][EDU] > 4
 assert RSL(IMS, "Capital")[3] and RSL(IMS, "Chungcheong")[3] and not any(RSL(IMS, r)[3] for r in ("Yeongnam", "Honam", "Gangwon_Jeju"))
-assert LO[("province", EDU)] == (16, 15) and LO[("year", EDU)] == (14, 14) and N["rubin"][EDU]["n_cred"] == 20   # 시도 하나씩 제외 15/16
+assert LO[("province", EDU)] == (16, 15) and LO[("year", EDU)] == (14, 14) and N["rubin"][EDU]["n_cred"] == 20   # Leave-one-province-out 15/16
 assert G_["rho_lipt_susp"] < 0 and G_["moran_G_p"] <= 0.001 and list(N["hot_by_sido"])[:2] == ["서울시", "경기도"] and abs(Y1 - 12.6) < 0.1
 
 if __name__ == "__main__":

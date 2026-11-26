@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 86_yearly_maps_ehsa.py - yearly maps and emerging hot spot analysis.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, json, math, unicodedata
 import numpy as np, pandas as pd, geopandas as gpd
 from scipy.stats import kendalltau, rankdata
@@ -8,7 +8,7 @@ import warnings; warnings.filterwarnings("ignore", category=RuntimeWarning, mess
 import matplotlib as mpl; mpl.use("Agg"); import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.patches import Patch
-TAG = sys.argv[1]; VER = sys.argv[2] if len(sys.argv) > 2 else "v1"; SUF = "" if VER in ("", "v1") else f"_{VER}"
+TAG = sys.argv[1]; VER = sys.argv[2] if len(sys.argv) > 2 else "std3"; SUF = "" if VER == "" else f"_{VER}"
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE); OUT = os.path.join(ROOT, "04_분석", TAG)
 RES = os.path.join(OUT, f"results{SUF}"); FIG = os.path.join(OUT, f"figs{SUF}"); os.makedirs(FIG, exist_ok=True)
 SHP = os.environ.get("ST_SHP", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "boundary", "final.shp"))

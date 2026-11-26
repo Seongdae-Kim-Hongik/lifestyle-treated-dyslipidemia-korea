@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # 99L2_build_Estd3_lipt.py - district counts and sex-by-age standardized expected numbers.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
-import os, sys, json, importlib.util, unicodedata
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+import os, io, sys, json, importlib.util, unicodedata, sqlite3
 import numpy as np, pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE); AN = os.path.join(ROOT, "04_분석"); PAN = os.path.join(ROOT, "02_패널")
-SRC = os.path.join(ROOT, "00_원천", "C_NHIS_검진보험")
+SRC = os.path.join(ROOT, "00_원천", "C_NHIS_검진보험"); os.makedirs(PAN, exist_ok=True)
 def _load(nm, f):
     s = importlib.util.spec_from_file_location(nm, os.path.join(HERE, f)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 m38 = _load("m38", "38_build_Estd_all.py"); cw = _load("cw", "40_region_crosswalk.py"); m50 = _load("m50", "50_build_master_panel.py")
@@ -33,11 +33,13 @@ for suf, code in OUTS.items():
     for s in SEXES: assert (abs(NUM[suf].xs(s, level="sex").sum(1) - bt.xs(s, level="sex")) <= 1).all(), (suf, s)
     RATE[suf] = NUM[suf] / EX
 print("[99L2] 전국 유질환자 비율(%, 성 합) 연도별:", (100 * NUM[""].groupby(level="year").sum().sum(1) / EX.groupby(level="year").sum().sum(1)).round(2).to_dict())
-base = pd.read_csv(os.path.join(AN, "PERIO", "panel_PERIO.csv"), encoding="utf-8-sig"); base["fbd_region"] = base.fbd_region.map(NFC); base["key"] = base.key.map(NFC)
-base = base[["year", "key", "fbd_region"]].drop_duplicates()
+# District-year skeleton (229 districts x 2011-2024, ordered by key and year) from the reference dataset (ST_REF_SQLITE, read-only).
+DB = os.environ["ST_REF_SQLITE"]; con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+base = pd.read_sql("select year, key, fbd_region from region_year where year between 2011 and 2024", con); base["fbd_region"] = base.fbd_region.map(NFC); base["key"] = base.key.map(NFC)
+base = base.drop_duplicates().sort_values(["key", "year"]).reset_index(drop=True); assert len(base) == 229 * len(YEARS) and base.key.nunique() == 229
 PKEYS = set(base.key); SIDO_HDR = {k for k in cw.SIDO_STD if len(k) >= 3 and (k.endswith("시") or k.endswith("도"))}
 FIVE = [f"{lo}-{lo+4}세" for lo in range(0, 85, 5)]; OLD85 = ["85-89세", "90-94세", "95-99세", "100세 이상"]
-EXTRA = {("충청북도", "청원군"): "충청북도|청주시"}; rows = []
+EXTRA = {("충청북도", "청원군"): "충청북도|청주시"}; rows = []; rows80 = []
 for y in YEARS:
     d = pd.read_csv(os.path.join(m38.FBDZIP, f"{y}.csv"), encoding="cp949", dtype=str)
     d["행정구역별"] = d["행정구역별"].map(NFC).str.strip(); d["연령별"] = d["연령별"].map(NFC).str.strip()
@@ -56,6 +58,11 @@ for y in YEARS:
         else: city = None
         key = EXTRA.get((cw.sido_std(sido), sg), cw.make_key(sido, sg))
         if key not in PKEYS and key.endswith("군") and key[:-1] + "시" in PKEYS: key = key[:-1] + "시"
+        # Share of residents aged 80+ (%, both sexes): (80-84 + 85+) / total, with 85+ = total - sum of the 5-year groups below 85.
+        a = pd.to_numeric(g.set_index("연령별")["전체"], errors="coerce"); t_ = a.get("계", np.nan)
+        if pd.notna(t_):
+            f_ = a.reindex(FIVE); assert f_.notna().all(), (y, nm)
+            rows80.append({"year": y, "key": NFC(key), "tot": t_, "p80": f_["80-84세"] + (t_ - f_.sum())})
         for s in SEXES:
             a = g.set_index("연령별")[s]; tot = a.get("계", np.nan)
             if pd.isna(tot): continue
@@ -87,9 +94,7 @@ MA = pd.read_parquet(os.path.join(PAN, "MASTER_시군구_연도_wide.parquet"), 
 MA["fbd_region"] = MA.fbd_region.map(NFC)
 c = P.merge(MA, on=["year", "fbd_region"], how="left", validate="one_to_one")
 dd = (c["cases"] - c["chk__유질환자_이상지질혈증"]).abs(); print(f"[99L2] MASTER 검산: 겹침 {int(dd.notna().sum())}칸 최대차 {dd.max():.0f}, MASTER 결측(원표 합으로 채움) {int(c['chk__유질환자_이상지질혈증'].isna().sum())}칸 {c.loc[c['chk__유질환자_이상지질혈증'].isna(), ['fbd_region','year']].values.tolist()}"); assert dd.max() <= 2
-import sqlite3
-DB = os.environ["ST_REF_SQLITE"]
-con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True); SQ = pd.read_sql('select year, fbd_region, "chk__유질환자_이상지질혈증" as sq from region_year where year between 2011 and 2024', con); SQ["fbd_region"] = SQ.fbd_region.map(NFC)
+SQ = pd.read_sql('select year, fbd_region, "chk__유질환자_이상지질혈증" as sq from region_year where year between 2011 and 2024', con); SQ["fbd_region"] = SQ.fbd_region.map(NFC)
 c = P.merge(SQ, on=["year", "fbd_region"], how="left", validate="one_to_one"); dd = (c.cases - c.sq).abs()
 print(f"[99L2] 기준 SQLite 검산: 겹침 {int(dd.notna().sum())}칸 최대차 {dd.max():.0f}, SQLite 빈칸 {int(c.sq.isna().sum())}칸"); assert dd.max() <= 2
 nat_ex = EX.groupby(level="year").sum().sum(1); nat_c = NUM[""].groupby(level="year").sum().sum(1)
@@ -111,8 +116,11 @@ for suf in OUTS:
     P["E_std" + suf] = rsc(E[suf], suf); P["E_pop" + suf] = rsc(EP[suf], suf)
     assert np.allclose(P.groupby("year")["E_std" + suf].sum(), P.groupby("year")["cases" + suf].sum())
 P["E_std_age"] = rsc(e_age, "")
-H = pd.read_csv(os.path.join(PAN, "HTND_Estd2.csv"), encoding="utf-8-sig"); H["fbd_region"] = H.fbd_region.map(NFC)
-P = P.merge(H[["year", "fbd_region", "pop80_share_raw"]], on=["year", "fbd_region"], how="left", validate="one_to_one"); assert P.pop80_share_raw.notna().all()
+H = pd.DataFrame(rows80).groupby(["year", "key"], as_index=False)[["tot", "p80"]].sum(); H["pop80_share_raw"] = 100 * H.p80 / H.tot
+# The published build stored this share in an intermediate CSV and read it back with the default pandas parser; the same
+# text round trip is applied here so that the expected-count file is byte-identical (it changes at most the last digit).
+H["pop80_share_raw"] = pd.read_csv(io.StringIO(H[["pop80_share_raw"]].to_csv(index=False))).pop80_share_raw.values
+P = P.merge(H[["year", "key", "pop80_share_raw"]], on=["year", "key"], how="left", validate="one_to_one"); assert P.pop80_share_raw.notna().all()
 nat = P.groupby("year").apply(lambda d: d.cases.sum() / d.examinees.sum()); P["E_crude"] = P.examinees * P.year.map(nat)
 P["SIR_std"] = P.cases / P.E_std
 P["uptake20"] = P.examinees / P[["year", "key"]].merge(G.groupby(["year", "key"], as_index=False)[BANDS[1:]].sum().assign(a20=lambda d: d[BANDS[1:]].sum(1))[["year", "key", "a20"]], on=["year", "key"], how="left", validate="one_to_one").a20.values

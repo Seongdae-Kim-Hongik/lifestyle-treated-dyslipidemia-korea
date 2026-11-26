@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 80_build_disease_panel_v.py - analytic district-year panel for one outcome tag and version.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import sys, os, json, unicodedata
 import numpy as np, pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

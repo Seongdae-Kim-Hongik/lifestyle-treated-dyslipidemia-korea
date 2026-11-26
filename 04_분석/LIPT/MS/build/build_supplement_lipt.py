@@ -1,21 +1,23 @@
-# build_supplement_lipt.py — Angiology Supplementary Material(단일 익명·미국식 철자; 단일 파일: Section S1–S9, 본문 첫 인용 순) + 별도 STROBE 체크리스트 파일. 수치는 결과 CSV에서만.
-#  머리글 = 저자 성 + running title·쪽 번호(원고와 같음). 표 번호 Table S1…, 그림 Fig. S1.
-import os, json, subprocess, pandas as pd
+# build_supplement_lipt.py: Supplementary Material (single-blind, American spelling; one file, Sections S1-S9 in order of first citation in the text) plus a separate STROBE checklist file.
+#  Values only from result CSVs. Header = author surname + running title and page number (as in the manuscript). Tables S1..., Fig. S1.
+import os, json, subprocess, shutil, tempfile, pandas as pd
 from docx.shared import Cm
 import content_manuscript_lipt as C
 from shared_lipt import LABEL, GROUPS as _G
 GROUPS = [("Lifestyle-related risk factors" if g == "Lipid risk factors" else g, v) for g, v in _G]
-from build_manuscript_lipt import TX, TITLE as DTITLE, foot_row, read_draft
+from build_manuscript_lipt import TX, TITLE as DTITLE, foot_row, read_draft, supmarks
 from american import amer as brit
-HERE = os.path.dirname(os.path.abspath(__file__)); MSD = os.path.dirname(HERE); OUT = os.path.join(MSD, "out_ang"); B = os.environ.get("LIPT_B", os.path.dirname(MSD)); RS = os.path.join(B, "results_std3")
+HERE = os.path.dirname(os.path.abspath(__file__)); MSD = os.path.dirname(HERE); OUT = os.environ.get("LIPT_OUT") or os.path.join(MSD, "out"); SUF = os.environ.get("LIPT_SUFFIX", ""); B = os.environ.get("LIPT_B", os.path.dirname(MSD)); RS = os.path.join(B, "results_std3")
 N = C.N
+SOFFICE = os.environ.get("SOFFICE") or shutil.which("soffice") or shutil.which("libreoffice")
 f3 = lambda t: f"{t[0]:.3f} ({t[1]:.3f}–{C.fh(t[2]) if (len(t) > 3 and t[3]) else f'{t[2]:.3f}'})"
 B1 = "Intervals with a bound shown as 1.000 were classified from unrounded values."
 ROBV = [C.EDU, C.IMS, C.MPA]
 SH = {C.EDU: "Tertiary education", C.IMS: "Internal-medicine specialists per 100,000 residents", C.MPA: "Moderate-to-vigorous activity"}
-J = TX(cite="bracket", lines=False, sz=10); J.cell_ls = 2.0   # 보충에는 줄번호 없음, 표 셀 행간 = 글자 크기 2배
+J = TX(cite="bracket", lines=False, sz=10); J.cell_ls = 2.0   # No line numbers in the supplement; table cell line spacing = 2x font size
 _NB = [False]
-def TF(title, header, rows, foot="", fs=8):   # 보충 표 8 pt 고정
+def TF(title, header, rows, foot="", fs=8):   # Supplementary tables fixed at 8 pt
+    header, rows, foot = supmarks(header, rows, foot)   # Footnote symbols -> superscript a, b, c
     title = brit(title); header = [brit(h) for h in header]; rows = [[brit(x) for x in r] for r in rows]
     (None if _NB[0] else J.page_break()); _NB[0] = False; J.table_fit(title, header, rows, "", fs_max=fs)
     if foot: foot_row(J, foot, 8, 12)
@@ -25,7 +27,7 @@ SECT = [("Section S1. Supplementary methods and screening judgement criteria", [
         ("Section S4. Robustness, comparison outcomes and model checks", ["S5", "S6"]), ("Section S5. STROBE and RECORD checklist", ["S7"]), ("Section S6. Persistence of the district pattern", ["S8", "FS1", "FS2"]),
         ("Section S7. Calendar windows and the COVID-19 period", ["S9"]), ("Section S8. Post hoc analyses", ["S10"]), ("Section S9. Age- and sex-specific rates", ["S11"]), ("Abbreviations", [])]
 FT = {"FS1": "Fig. S1. Emerging hot spot analysis and calendar windows of residual hot and cold spots", "FS2": "Fig. S2. Observed and fitted sex- and age-standardised treatment ratios"}
-def _toc(text, ind):   # 보충 색인: 항목별 한 줄, 10 pt·1줄 간격·내어쓰기
+def _toc(text, ind):   # Supplementary index: one line per item, 10 pt, single spacing, hanging indent
     pp = J.para(text, double=False, before=(0 if ind else 3)); pf = pp.paragraph_format; pf.left_indent = Cm(0.6 + (0.6 if ind else 0)); pf.first_line_indent = Cm(-0.6)
 J.para("<b>Contents</b>", before=6)
 for _h, _ks in SECT:
@@ -33,12 +35,12 @@ for _h, _ks in SECT:
     for _k in _ks: _toc(FT[_k] if _k.startswith("F") else TT[_k], True)
 _LK = C._LK; _MT = pd.read_csv(os.path.join(B, "panel_META_LIPT_std3.csv"), encoding="utf-8-sig").set_index("variable")
 _imp = lambda v: int(_MT.loc[v, "n_imputed_interp"] + _MT.loc[v, "n_imputed_sgg_mean"] + _MT.loc[v, "n_imputed_year_mean"])
-# S1 (구 S1)
+# S1
 _T1 = N["T1"]; _eh = N["ehsa"]; _pn = N["persist_null"]
 SM = [("Outcome and denominator.", f"The national statistics portal publishes, for each year, the number of general health screening attendees and the number placed in each judgement category by district, sex and 5-year age group. Attendees who report a physician diagnosis of dyslipidaemia and current drug treatment are placed in the existing-disease category for dyslipidaemia; attendees with abnormal lipid results and no treatment are placed in the suspected-disease category. District sums of attendees and of treated dyslipidaemia were {N['dist_nat_pct'][0]:.1f}–{N['dist_nat_pct'][1]:.1f}% of national totals in every year. Seven district-years missing in the disease-by-district table were filled from the sum of the sex-by-age table for the same district and year. Sejong appears in the source tables only as a province-level row, with values for 2012–2024, and not as a district row; it was excluded from the analysis and kept only in the neighbourhood graph (Table S4), leaving {N['n_districts']} districts and {N['n_rows']:,} district-years."),
       ("Screening judgement criteria.", "The 17 versions of the Health Screening Implementation Standards in force in 2011–2024 were obtained from the national legislation portal, and the dyslipidaemia rows of the judgement tables were converted and checked twice against the originals (Table S1). The existing-disease criterion was the same sentence in every version and contained no laboratory threshold. The thresholds for suspected dyslipidaemia were lower in 2014–2015. From 2018 the lipid panel was restricted to men aged 24 years or older and women aged 40 years or older every 4 years, and the history question changed from a tick grid to a yes/no item for each condition. National counts of judged treated attendees were compared with questionnaire answers on diagnosis and drug treatment for dyslipidaemia, the components from which the judgement is made, and with the share of attendees who had a lipid panel (Table S2). The judged count did not exceed the questionnaire count of drug treatment in most sex and age strata from 2018; the ratio of the two fell in 2018 among people aged 45–59 years, and in 2011–2012 it was lower than in later years. Because the criterion did not change, these shifts are described as apparent changes in the programme judgement."),
       ("Standardisation.", f"Expected numbers E = Σ(attendees in sex s and age a) × (national share treated in s and a), with 15 age groups (19 years or younger, 5-year groups from 20–24 to 80–84 years, and 85 years or older), computed separately for each year and rescaled to the national number treated in that year, so that national changes over time are absorbed by E. The ratio of standardised to crude expected numbers ranged from {N['estd_ecrude'][0]:.2f} to {N['estd_ecrude'][1]:.2f}. A resident-based alternative applied the same national shares to the resident population; its district ratios correlated with the attendee-based ratios at Spearman's ρ {N['rho_std_pop']:.2f}."),
-      ("Lipid-testing schedule.", f"The national share treated rose through 2018 without a fall ({N['pos_y'][2017]:.2f}% in 2017, {N['pos_y'][2018]:.2f}% in 2018), although its annual increase was smaller in 2018 than in other years (Table S2), and the calendar windows (2011–2017, 2018–2024), fixed before any covariate model was fitted, do not cross the change."),
+      ("Lipid-testing schedule.", f"The national share treated rose through 2018 without a fall ({N['jg_jpct_nat'][2017]:.2f}% in 2017, {N['jg_jpct_nat'][2018]:.2f}% in 2018), although its annual increase was smaller in 2018 than in other years (Table S2), and the calendar windows (2011–2017, 2018–2024), fixed before any covariate model was fitted, do not cross the change."),
       ("Covariates.", "Community Health Survey indicators are age-standardised district estimates. Specialist density counts internal-medicine specialists working in the district. Uptake is the share of people invited to general screening who attended. Basic livelihood security rates are official recipient counts of the Ministry of Health and Welfare divided by the resident population; they replaced the source-table values, which had collapsed or been inflated in 2021–2023 for 11 cities divided into general districts (417 district-years changed in all, mostly from the 2018 and 2024 official revisions). Comparison outcomes (patients treated for gastric cancer and for infectious disease, national health insurance statistics) and negative-control exposures (hit-and-run traffic accidents, fires per 10,000 residents, household waste recycling rate; Statistics Korea) covered 2011–2024. "
        f"Specialist density was 0 in {N['ims_zero_cells']} district-years, so it entered the models as log(1 + specialists per 100,000). The added constant was kept because 4 alternatives without it (interpolating the 2 isolated zeros between positive years, adding half the smallest positive value instead of 1, treating zeros as missing and filling them, and entering untransformed density) gave the same set of credible hypothesis covariates, with specialist RRs of {N['plus1_ims_range'][0]:.3f}–{N['plus1_ims_range'][1]:.3f}."),
       ("Models.", f"Software: R version 4.6.0 (R Foundation for Statistical Computing, Vienna, Austria) with the INLA (R-INLA), sf, spdep, Matrix, jsonlite, dplyr, ggplot2 and patchwork packages; Python 3.9 (Python Software Foundation, Wilmington, DE, USA) with pandas, NumPy, SciPy, GeoPandas and Matplotlib for data preparation, emerging hot spot analysis, persistence statistics and figures. "
@@ -55,7 +57,7 @@ SM = [("Outcome and denominator.", f"The national statistics portal publishes, f
       ("Post hoc analyses.", "The decomposition into district means and two-way-centred deviations was planned. After the principal results were seen, specialist density, associated against its expected direction, was examined with a single-covariate model, removal of physician density, tertiary education, or physician density and urban share, one-way decomposition into district means and deviations, addition of unmet need and the shares of attendees treated for hypertension or diabetes, and replacement by, or addition of, log specialists per km².")]
 J.page_break(); J.head("Section S1. Supplementary methods and screening judgement criteria", 2)
 for h, t in SM: J.para(f"<b>{h}</b> {t}")
-# Table S1 판정 기준 연혁, Table S2 판정 구성 대조(판정 구성 게이트 산출)
+# Table S1 history of the judgement criteria, Table S2 judgement-composition check
 import re as _re
 def _thr(x):
     x = str(x).strip(); m = _re.match(r"^(\d+) 이상$", x)
@@ -79,17 +81,18 @@ fmt = lambda v, d: "" if pd.isna(v) else (f"{int(v):,}" if d == 0 else f"{v:.{d}
 rows = [[str(int(r[c_[0]])), fmt(r[c_[3]], 2), fmt(r[c_[4]], 2), fmt(r[c_[6]], 3), fmt(r[c_[7]], 3), fmt(r[c_[8]], 2), fmt(r[c_[9]], 2), fmt(r[c_[12]], 1) or "NA"] for _, r in TS2.iterrows()]
 TF(TT["S2"], ["Year", "Treated (judged), %", "Treated (history), %", "Judged / history", "Lipid panel / attendees", "Suspected, %", "Suspected, % of tested", "Annual change, %"], rows,
    "Percentages are of attendees unless stated. Treated (judged), existing-disease judgement for dyslipidaemia; treated (history), questionnaire answer on current drug treatment for dyslipidaemia; judged / history, ratio of judged to questionnaire-treated attendees; lipid panel / attendees, attendees with a lipid panel over all attendees (above 1 in 2015–2017 because some were counted only in lipid tables); suspected, suspected-disease judgement; annual change, change in the judged share from the previous year; NA, not applicable. Source: national screening tables of the Korean Statistical Information Service.")
-
+# S2 covariates (Table S3) with a supporting-reference column (main-text reference numbers, already-cited keys only)
 import build_manuscript_lipt as _BJ
 _Jm, _rl, _ = _BJ.build(); _REFN = {k: i + 1 for i, k in enumerate(_Jm.cites)}
 EVK = {"im_specialists_per_100k": ["guagliardo2004spatial", "kim2017evaluation"], "screening_uptake": ["park2021association", "yun2023socioeconomic"], "tertiary_educated_share": ["marcus2021unmet"],
-       "walking_practice_rate": ["kodama2007effect"], "moderate_pa_rate": ["kodama2007effect", "smart2025effect"], "basic_livelihood_rate": ["wallachkildemoes2013adherence", "ashworth2007social"],
-       "urban_population_share": ["park2016spatial"], "physicians_per_1000": ["park2016spatial"]}
-assert all(k in _REFN for v in EVK.values() for k in v)
+       "obesity_rate": ["dattilo1992effects"], "high_risk_drinking_rate": ["brien2011effect"], "current_smoking_rate": ["craig1989cigarette"],   # Keys with supporting references
+       "walking_practice_rate": ["kodama2007effect"], "moderate_pa_rate": ["kodama2007effect", "smart2025effect"], "public_sports_facilities_per_100k": ["kodama2007effect", "smart2025effect"],
+       "basic_livelihood_rate": ["wallachkildemoes2013adherence", "ashworth2007social"], "single_person_household_share": ["park2022multi"],
+       "urban_population_share": ["park2016spatial", "lee2025national"], "physicians_per_1000": ["park2016spatial"], "sex_ratio": ["lee2025national"], "fiscal_independence": ["park2022multi"], "pop80_share": ["lee2025national"]}
+assert all(k in _REFN for v in EVK.values() for k in v) and set(EVK) == set(LABEL)   # Supporting references for all 16 covariates
 def _ev(v):
     ks = EVK.get(v)
-    if ks: return ", ".join(str(n) for n in sorted(_REFN[k] for k in ks))
-    return "Series forced control" if _MT.loc[v, "role"] == "forced" else "Data source only"
+    return ", ".join(str(n) for n in sorted(_REFN[k] for k in ks))
 J_SETS = json.load(open(os.path.join(B, "sets_LIPT_std3.json"), encoding="utf-8"))
 DIRN = {k: v.split()[0].replace("-", "−") for k, v in J_SETS["expected_direction"].items()}
 MAPV = {_MT.loc[v, "source_column"]: v for v in _MT.index}
@@ -103,12 +106,15 @@ for g, vs in GROUPS:
     rows.append(["__H__", g])
     for v in vs:
         m = _MT.loc[v]; x = ORIG(v, _P); q1, md, q3 = x.quantile([.25, .5, .75]); k = _d(md)
-        rows.append([f"  {LABEL[v]}", UNIT[v], (f"{SRCAB[v]}, {YRAB.get(v, '2011–24')}").replace(", ", ",\u00a0").replace("–", "\u2060–\u2060"), f"{md:,.{k}f} ({q1:,.{k}f}–{q3:,.{k}f}); {x.min():,.{k}f}⁠–⁠{x.max():,.{k}f}", ("NA" if m.role == "forced" else DIR[v]), f"{_imp(v):,}", _ev(v)])
+        rows.append([f"  {LABEL[v]}", UNIT[v], (f"{SRCAB[v]}, {YRAB.get(v, '2011–24')}").replace(", ", ",\u00a0").replace("–", "\u2060–\u2060"), f"{md:,.{k}f} ({q1:,.{k}f}⁠–⁠{q3:,.{k}f})", f"{x.min():,.{k}f}⁠–⁠{x.max():,.{k}f}", ("NA" if m.role == "forced" else DIR[v]), f"{_imp(v):,}", _ev(v)])
 assert sum(1 for r in rows if r[0] != "__H__") == 16 and all(DIR.get(v) for g, vs in GROUPS[:-1] for v in vs)
 J.page_break(); J.head("Section S2. Covariates", 2); _NB[0] = True
-TF(TT["S3"], ["Covariate", "Unit", "Source, years", "Median (IQR); range", "Sign", "Filled", "Ref."], rows,
-   f"IQR, interquartile range; NA, not applicable (no direction specified for forced controls). {SRC_FOOT} †Census years 2010, 2015 and 2020, interpolated between censuses and held at 2020 thereafter. ‡Age-standardised district estimates. §Not surveyed in 2019 (obesity) or 2018 (moderate-to-vigorous activity). Statistics are over all {N['n_rows']:,} district-years on the original scale (specialists entered the models as log(1 + specialists per 100,000)). Filled, district-years filled by within-district interpolation, district mean or year mean, out of {N['n_rows']:,}. Sign, expected direction of the association; Ref., numbers in the reference list of the manuscript for the evidence behind the expected direction; series forced control, a control forced into every model of the study series without a direction-specific reference; data source only, no direction-specific reference beyond the data source, with the direction set by the stated assumption in the Methods.")
-
+# Table S3: separate median and range cells (fewer line breaks)
+J.fit_pad = 0.4
+TF(TT["S3"], ["Covariate", "Unit", "Source, years", "Median (IQR)", "Range", "Sign", "Filled", "Ref."], rows,
+   f"IQR, interquartile range; NA, not applicable (no direction specified for forced controls). {SRC_FOOT} †Census years 2010, 2015 and 2020, interpolated between censuses and held at 2020 thereafter. ‡Age-standardised district estimates. §Not surveyed in 2019 (obesity) or 2018 (moderate-to-vigorous activity). Statistics are over all {N['n_rows']:,} district-years on the original scale (specialists entered the models as log(1 + specialists per 100,000)). Filled, district-years filled by within-district interpolation, district mean or year mean, out of {N['n_rows']:,}. Sign, expected direction of the association; Ref., numbers in the reference list of the manuscript for the evidence behind the expected direction or, for forced controls, behind their inclusion; for public sports facilities the evidence concerns the physical activity they support, and for single-person households the cited survey found higher screening participation, so the expected direction rests on the assumption stated in the Methods.")
+J.fit_pad = 0.65
+# S3 panel checks (Table S4), Sejong row
 J.page_break(); J.head("Section S3. Panel checks before modelling", 2); _NB[0] = True
 _jf = N["jump_flags"]; _v5 = _MT[_MT.role.isin(["forced", "candidate"]) & (_MT.vif_final >= 5)].index.tolist(); assert _v5 == ["pop80_share"], _v5
 rows = [["Twofold year means", "Largest/smallest positive yearly mean ≥2", "Separates a shift of a whole year from district noise; series data-gate rule", "Outcome and expected numbers (national share treated rose 1.7% to 12.6%); standardised columns with yearly means near 0", "Real trend absorbed by yearly national shares; retained"],
@@ -122,7 +128,7 @@ rows = [["Twofold year means", "Largest/smallest positive yearly mean ≥2", "Se
         ["Collinearity", "Variance inflation factor ≥10", "Conventional limit", f"None (maximum {N['vif_max']:.2f}, share aged 80+)", "None"]]
 TF(TT["S4"], ["Check", "Threshold", "Basis", "Flags in this panel", "Action"], rows, f"Checks were run on the analytic panel ({N['n_rows']:,} district-years) before any covariate model was fitted. "
    f"Threshold sensitivity: with stricter jump thresholds (<1/3 or >3 times adjacent years and 2-fold changes) the scan flagged {_jf['stricter_0.33_3_2']:,} cells and with looser ones (<0.1 or >10 times and 4-fold) {_jf['looser_0.1_10_4']:,}, against {_jf['default_0.2_5_3']:,}; the additional cells were small-county survey estimates, small counts and the early rise of the outcome, no threshold led to a correction, and the only correction (basic livelihood security) did not depend on a threshold, so the analytic panel and the results were the same under all 3 sets. With a variance inflation limit of 5 instead of 10, only the share aged 80 years or older, a forced control, would be flagged.")
-# S4 강건성(구 Table S3 → Table S5)
+# S4 robustness (Table S5)
 LO = N["leaveout"]
 def rrow(lab, fn): return [lab] + [fn(v) for v in ROBV]
 RG = ("Capital", "Chungcheong", "Honam", "Yeongnam", "Gangwon_Jeju")
@@ -184,12 +190,12 @@ J.page_break(); J.head("Section S4. Robustness, comparison outcomes and model ch
 TF(TT["S5"], ["Analysis"] + [SH[v] for v in ROBV], rows,
    "Values are rate ratios (RRs) per 1 standard deviation with 95% credible intervals (CrIs) unless stated. Retained, credible with the principal-model sign. Alternative fits are listed in Section S1. "
    "Spatial+ adjustment, covariates replaced by their residuals after removing spatially smooth components. Restricted spatial regression, district effect constrained to be orthogonal to district-mean covariates; it understates uncertainty and is not interpreted. CAR, conditional autoregressive. WAIC, widely applicable information criterion; ΔWAIC, difference in WAIC from the principal model (negative values indicate better fit); type I is an observation-level effect and was not compared by WAIC. "
-   "Two-way decomposition, district means and deviations centred on both district and year means; one-way decomposition, deviations from district means only (fitted for specialist density only; NA, not fitted). Region-specific slopes, RRs per 1 standard deviation within each region, from a model with region-specific slopes for that covariate; ΔWAIC is the difference from the lower-WAIC of 2 baselines (common slopes; common slopes with region main effects), read as support for heterogeneity at −6 or less, weak support from −6 to −4, no difference from −4 to 4 and favouring common slopes above 4 (thresholds set after the principal results were known); CPO, conditional predictive ordinate. *The region-specific model for tertiary education fitted much worse than the baselines and was unstable, so its regional RRs are not estimable and are not shown. "
+   "Two-way decomposition, district means and deviations centred on both district and year means; one-way decomposition, deviations from district means only (fitted for specialist density only; NA, not fitted). Region-specific slopes, RRs per 1 standard deviation within each region, from a model with region-specific slopes for that covariate; ΔWAIC is the difference from the lower-WAIC of 2 baselines (common slopes; common slopes with region main effects), read as support for heterogeneity at −6 or less, weak support from −6 to −4, no detectable difference from −4 to 4 and favouring common slopes above 4 (thresholds set after the principal results were known); CPO, conditional predictive ordinate. *The region-specific model for tertiary education fitted much worse than the baselines and was unstable, so its regional RRs are not estimable and are not shown. "
    "E-value, the minimum strength of association, on the RR scale, that an unmeasured confounder would need with both the covariate and the outcome to explain away the estimate (point) or the CrI limit closer to 1. " + B1)
 NCN = {"hit_and_run_rate": "Hit-and-run accidents", "fires_per_10000": "Fires per 10,000", "waste_recycling_rate": "Household waste recycling"}
 SPN = {"principal": "Principal model", "forced_only": "Forced controls only", "parsimonious": "Smaller covariate set", "no_spatial": "No district effect", "iid_district": "Independent district effect only", "icar_district": "Intrinsic CAR district effect only", "typeI_interaction": "Knorr-Held type I interaction"}
 RMS = N["resid_moran_spec"]; assert set(RMS) == set(SPN)
-_MI = lambda k: (N['moran_resid'], N['moran_resid_p']) if k == 'principal' else (RMS[k]['resid_moran_I'], RMS[k]['p_perm'])   # 주모형 행 = 본문과 같은 주모형 적합값
+_MI = lambda k: (N['moran_resid'], N['moran_resid_p']) if k == 'principal' else (RMS[k]['resid_moran_I'], RMS[k]['p_perm'])   # Main-model row = the same main-model estimates as in the main text
 rows = [["__H__", "Negative-control exposures (added one at a time), RR (95% CrI)"]] + [[f"  {NCN[k]}", f"{v['IRR']:.3f} ({v['lo']:.3f}–{v['hi']:.3f})"] for k, v in N["negctl"].items()]
 rows += [["  Fires, with road paving added", f3(N["xf"]["nco_fires_per_10000_plus_road"]["fires_per_10000"])], ["  Fires, urban share modelled non-linearly", f3(N["xf"]["nco_fires_per_10000_urban_rw2"]["fires_per_10000"])]]
 _KHN = {"KH_typeI": "Type I", "KH_typeII": "Type II", "KH_typeIII": "Type III", "KH_typeIV": "Type IV"}; _khr = []
@@ -204,14 +210,14 @@ rows += [["__H__", f"Multiplicity, {C.NHYP} hypothesis covariates at the 95% lev
          ["  Credible associations expected by chance, principal model", f"{C.EXP_CHANCE:.2f} (observed {N['n_cred_hyp']})"],
          ["  Credible window interactions expected by chance", f"{C.EXP_CHANCE:.2f} (observed {N['n_win_int']})"]]
 rows += [["__H__", "Predictive checks"], ["  95% posterior predictive coverage, %", f"{100*N['ppc']['coverage95']:.1f}"], ["  50% posterior predictive coverage, %", f"{100*N['ppc']['coverage50']:.1f}"],
-         ["  PIT Kolmogorov–Smirnov <i>p</i>", "<0.001" if N['ppc']['pit_ks_p'] < 0.001 else f"{N['ppc']['pit_ks_p']:.3f}"], ["  Held-out 2024 coverage (95%), %", f"{100*N['oos']['coverage95']:.1f}"],
-         ["__H__", "Residual Moran's I (two-sided permutation <i>p</i>)"]] + [[f"  {SPN[k]}", f"{_MI(k)[0]:.2f} ({'<0.001' if _MI(k)[1] < 0.001 else format(_MI(k)[1], '.3f')})"] for k in SPN] + [
+         ["  PIT Kolmogorov–Smirnov <i>P</i>", "<0.001" if N['ppc']['pit_ks_p'] < 0.001 else f"{N['ppc']['pit_ks_p']:.3f}"], ["  Held-out 2024 coverage (95%), %", f"{100*N['oos']['coverage95']:.1f}"],
+         ["__H__", "Residual Moran's I (two-sided permutation <i>P</i>)"]] + [[f"  {SPN[k]}", f"{_MI(k)[0]:.2f} ({'<0.001' if _MI(k)[1] < 0.001 else format(_MI(k)[1], '.3f')})"] for k in SPN] + [
          ["__H__", "Share of linear-predictor variance, %"],
          ["  Structured spatial effect", f"{100*N['varpart']['spatial_structured']['share_of_linear_predictor_var']:.1f}"],
          ["  All covariates, including forced controls", f"{100*N['varpart']['fixed_covariates']['share_of_linear_predictor_var']:.1f}"],
          ["  Hypothesis covariates", f"{100*N['varpart']['fixed_hypothesis']['share_of_linear_predictor_var']:.1f}"]]
 TF(TT["S6"], ["Analysis", "Result"], rows, f"RR, rate ratio per 1 standard deviation; CrI, credible interval; PIT, probability integral transform; CAR, conditional autoregressive. Residual Moran's I used district means of Pearson residuals with {N['moran_perm']} permutations (seed {N['moran_resid_seed']}); the principal-model row is from the principal fit reported in the manuscript, and the other rows from fits of each specification. Variance shares are the variance of each linear-predictor component divided by the variance of the full linear predictor; components are correlated, so the shares are not additive and do not sum to 100%.")
-
+# S5 STROBE + RECORD
 MH = [h for h, _ in C.METHODS]; RH = [h for h, _ in C.RESULTS]; assert MH[0].startswith("Design") and MH[2] == "Covariates" and RH[0].startswith("Treated")
 M_ = lambda *i: "Methods, " + " and ".join(str(x) for x in i); R_ = lambda *i: "Results, " + " and ".join(str(x) for x in i)
 CK = [("Title and abstract", "1", "Title; Abstract"), ("Background/rationale", "2", "Introduction"), ("Objectives", "3", "Introduction, final paragraph"), ("Study design", "4", M_(1)), ("Setting", "5", M_(1)),
@@ -230,11 +236,11 @@ CK = [("Title and abstract", "1", "Title; Abstract"), ("Background/rationale", "
 J.page_break(); J.head("Section S5. STROBE and RECORD checklist", 2); _NB[0] = True
 TF(TT["S7"], ["Item", "No.", "Where reported"], [[a, b, c] for a, b, c in CK],
    "STROBE, Strengthening the Reporting of Observational Studies in Epidemiology; RECORD, REporting of studies Conducted using Observational Routinely collected health Data.")
-
+# S6 persistence: text (Kendall W = ranks of observed ratios), Table S8 district list, Fig. S1
 J.page_break(); J.head("Section S6. Persistence of the district pattern", 2)
 J.para(f"The 10th–90th percentile range of district treatment ratios was {_T1['W1_2011-17']['sir_p10']:.2f}–{_T1['W1_2011-17']['sir_p90']:.2f} in 2011–2017 and {_T1['W2_2018-24']['sir_p10']:.2f}–{_T1['W2_2018-24']['sir_p90']:.2f} in 2018–2024. "
        f"The window models identified {N['win_hot']['W1_2011-17']} hot and {N['win_cold']['W1_2011-17']} cold spots in 2011–2017 and {N['win_hot']['W2_2018-24']} hot and {N['win_cold']['W2_2018-24']} cold spots in 2018–2024; {N['hot_all_windows']} districts were hot spots and {N['cold_all_windows']} cold spots in both (Table S8; Fig. S1B). "
-       f"Kendall's W of annual district rankings of observed ratios was {N['kendall_W']:.2f}; it exceeded every value from the permutation and Poisson null models ({int(_pn['B']):,} each; <i>p</i><0.001). "
+       f"Kendall's W of annual district rankings of observed ratios was {N['kendall_W']:.2f}; it exceeded every value from the permutation and Poisson null models ({int(_pn['B']):,} each; <i>P</i> < 0.001). "
        f"Emerging hot spot analysis classified {_eh['Persistent hot']} districts as persistent, {_eh['Consecutive hot']} as consecutive, {_eh['Intensifying hot']} as intensifying and {_eh['Diminishing hot']} as diminishing hot spots, and {_eh['Persistent cold']} as persistent, {_eh['Consecutive cold']} as consecutive and {_eh['Sporadic cold']} as sporadic cold spots; {_eh['No pattern']} districts showed no pattern, and the remaining districts fell into other categories (Fig. S1A).")
 NM = pd.read_csv(os.path.join(HERE, "district_names_en.csv"), encoding="utf-8").set_index("fbd_region").name_en
 import unicodedata as _ud
@@ -258,21 +264,23 @@ assert (nh_, nc_, nb_h, nb_c) == (N["n_hot"], N["n_cold"], N["hot_all_windows"],
 _NB[0] = True
 TF(TT["S8"], ["District", "Residual RR (95% CrI), 2011–2024", "2011–2024", "2011–2017", "2018–2024"], rows,
    f"RR, residual spatial rate ratio from the principal model (posterior mean of the exponentiated Besag–York–Mollié 2 district effect); CrI, credible interval. Hot, posterior probability that the residual spatial RR exceeded 1 above 0.95; cold, below 0.05; –, neither. Window columns are from the principal model fitted to each window. Numbers in parentheses are districts listed. Totals: {N['n_hot']} hot and {N['n_cold']} cold spots in 2011–2024; {N['hot_all_windows']} hot and {N['cold_all_windows']} cold spots in both windows. Districts are sorted by residual RR within provinces; official English names.")
-J.page_break(); _pp = J.para(""); _pp.alignment = 1   # 그림 구역 시작에서만 쪽 나눔
+J.page_break(); _pp = J.para(""); _pp.alignment = 1   # Page break only at the start of the figure section
 from docx.shared import Pt as _Pt
 from docx.enum.text import WD_LINE_SPACING as _LS
-_pp.paragraph_format.line_spacing_rule = _LS.SINGLE; _pp.paragraph_format.space_before = _Pt(6); _pp.paragraph_format.space_after = _Pt(6)   # 그림 단락 단일 행간·가운데·앞뒤 120 twips
-_pp.add_run().add_picture(os.path.join(HERE, "figs", "FigS1.png"), width=Cm(15.9))   # 본문 폭 15.92 cm 이하, 캔버스 159 mm와 같음(축소 없음)
+_pp.paragraph_format.line_spacing_rule = _LS.SINGLE; _pp.paragraph_format.space_before = _Pt(6); _pp.paragraph_format.space_after = _Pt(6)   # Figure paragraph: single spacing, centred, 120 twips before and after
+_pp.add_run().add_picture(os.path.join(HERE, "figs", "FigS1.png"), width=Cm(15.9))   # Text width <= 15.92 cm, equal to the 159 mm canvas (no scaling)
 _lg = J.para("<b>Fig. S1.</b> (A) Emerging hot spot analysis (Getis–Ord Gi* statistics with Mann–Kendall trend tests) of empirical Bayes-smoothed treatment ratios, 2011–2024; all categories are listed, with numbers of districts in parentheses. (B) Number of calendar windows (2011–2017, 2018–2024) in which each district was a covariate-adjusted residual hot or cold spot in the principal model; numbers of districts in parentheses. In both panels, no data, Sejong, published only as a province-level row; the bar shows 0, 50 and 100 km and the triangle points north.")
 for _r in _lg.runs:
-    if _r.bold: _r.font.size = _Pt(11)   # 그림 설명 제목 11 pt
+    if _r.bold: _r.font.size = _Pt(11)   # Figure caption title 11 pt, caption 10 pt
+_lg.paragraph_format.line_spacing_rule = _LS.SINGLE; _lg.paragraph_format.space_before = _Pt(10); _lg.paragraph_format.space_after = _Pt(3)   # Single spacing
 _e84 = N["e084"]
 J.page_break(); _p2 = J.para(""); _p2.alignment = 1; _p2.paragraph_format.line_spacing_rule = _LS.SINGLE; _p2.paragraph_format.space_before = _Pt(6); _p2.paragraph_format.space_after = _Pt(6)
 _p2.add_run().add_picture(os.path.join(HERE, "figs", "FigS2.png"), width=Cm(15.9))
 _lg = J.para(f"<b>Fig. S2.</b> (A) Observed sex- and age-standardised treatment ratio (observed over expected numbers) and (B) fitted ratio from the principal model (fitted over expected numbers) by district, 2011–2024, in the 6 fixed classes of Fig. 1A. Observed ratios ranged from {_e84[0]:.2f} to {_e84[1]:.2f} (median {_e84[2]:.2f}) and correlated with the fitted ratios at r {_e84[3]:.2f}. The covariate-adjusted residual ratio is mapped in Fig. 1A of the manuscript. No data, Sejong, published only as a province-level row; the bar shows 0, 50 and 100 km and the triangle points north.")
 for _r in _lg.runs:
-    if _r.bold: _r.font.size = _Pt(11)   # 그림 설명 제목 11 pt
-# S7 창(구 Table S6 → Table S9)
+    if _r.bold: _r.font.size = _Pt(11)   # Figure caption title 11 pt, caption 10 pt
+_lg.paragraph_format.line_spacing_rule = _LS.SINGLE; _lg.paragraph_format.space_before = _Pt(10); _lg.paragraph_format.space_after = _Pt(3)   # Single spacing
+# S7 windows (Table S9)
 WI = pd.read_csv(os.path.join(RS, "S4_window_IRR.csv")).set_index(["cov", "window"]); IT = pd.read_csv(os.path.join(RS, "S4_interaction.csv")).set_index("cov")
 CV = pd.read_csv(os.path.join(RS, "S5_covid.csv")); CVX = CV[CV.term == "var_x_post"].set_index("cov")
 rows = []
@@ -282,7 +290,7 @@ for g, vs in GROUPS[:-1]:
 J.page_break(); J.head("Section S7. Calendar windows and the COVID-19 period", 2); _NB[0] = True
 TF(TT["S9"], ["Covariate", "2011–2017", "2018–2024", "Ratio, later vs earlier window", "Interaction, 2020 onwards"], rows,
    "Rate ratio per 1 standard deviation (95% credible interval). Window columns: principal model structure fitted separately to each window with all forced controls. Ratio: window interaction in a single model (rate ratio in 2018–2024 divided by that in 2011–2017). Interaction, 2020 onwards: ratio of the rate ratio from 2020 onwards to that before 2020 (COVID-19 period). " + B1)
-
+# S8 post hoc (Table S10); one-sided decomposition in Table S5
 V = C.IMS; S46 = N["s46"]
 rows = [["Principal model", f3((N["main"][V]["IRR"], N["main"][V]["lo"], N["main"][V]["hi"], True))],
         ["Unmet need and treated hypertension and diabetes added", f3(S46[("P1_plus_access_dx", V)])],
@@ -297,7 +305,7 @@ rows += [["__H__", "Region-specific slopes (per population)"]] + [[f"  {r.replac
 J.page_break(); J.head("Section S8. Post hoc analyses", 2); _NB[0] = True
 TF(TT["S10"], ["Analysis", "RR (95% CrI)"], rows,
    f"RR, rate ratio per 1 standard deviation; CrI, credible interval. Expected direction positive. All rows except the principal model and the region-specific slopes were added after the results were seen; the one-way decomposition is in Table S5. Specialists per population correlated with the share aged 80 years or older (r {N['ims_pop80_r']:.2f}), urban share (r {N['ims_urban_r']:.2f}) and physician density (r {N['ims_phys_r']:.2f}).")
-
+# S9 age- and sex-specific rates: national table, per 100,000 examinees
 S21 = N["s21"]; _ab = list(dict.fromkeys(S21.age_band)); assert len(_ab) == 15
 _rt = S21.set_index(["sex", "age_band", "period"]).rate_per100k
 _AL = lambda a: "19 or younger" if a == "0-19" else ("85 or older" if a == "85+" else a.replace("-", "–"))
@@ -310,18 +318,18 @@ J.para(f"National rates of treated dyslipidaemia among attendees over 2011–202
 _NB[0] = True
 TF(TT["S11"], ["Age, years", "Men, 2011⁠–⁠2017", "Men, 2018⁠–⁠2024", "Men, 2011⁠–⁠2024", "Women, 2011⁠–⁠2017", "Women, 2018⁠–⁠2024", "Women, 2011⁠–⁠2024"], rows,
    "Attendances with treated dyslipidaemia per 100,000 attendances, from the national tables by sex and age group (DT_35007_N106 and DT_35007_N099) that supplied the national shares for indirect standardisation; these tables include Sejong.")
-
+# Abbreviation list
 J.page_break(); J.head("Abbreviations", 2)
 J.para("BYM2, Besag–York–Mollié 2; CAR, conditional autoregressive; CrI, credible interval; e-LI, Statistics Korea e-Local Indicators; HDL-C, high-density lipoprotein cholesterol; HIRA, Health Insurance Review and Assessment Service; INLA, integrated nested Laplace approximation; IQR, interquartile range; KCHS, Korea Disease Control and Prevention Agency Community Health Survey; LDL-C, low-density lipoprotein cholesterol; MCST, Ministry of Culture, Sports and Tourism; MOHW, Ministry of Health and Welfare; NA, not applicable; NHIS, National Health Insurance Service; PIT, probability integral transform; RECORD, REporting of studies Conducted using Observational Routinely collected health Data; RR, rate ratio; RRP, resident registration population; SD, standard deviation; STROBE, Strengthening the Reporting of Observational Studies in Epidemiology; TC, total cholesterol; TG, triglycerides; WAIC, widely applicable information criterion; ΔWAIC, difference in WAIC from the principal model.")
-ps = os.path.join(OUT, "Supplementary_Material_LIPT_ANG.docx"); J.doc_title = "Supplementary Material"; J.save(ps)
-subprocess.run(["/opt/homebrew/bin/soffice", "--headless", "-env:UserInstallation=file:///tmp/lo_lipt_esm_ang", "--convert-to", "pdf", "--outdir", OUT, ps], check=True, capture_output=True)
+ps = os.path.join(OUT, f"Supplementary_Material{SUF}.docx"); J.doc_title = "Supplementary Material"; J.save(ps)
+subprocess.run([SOFFICE, "--headless", "-env:UserInstallation=file://" + tempfile.mkdtemp(prefix="lo_lipt_"), "--convert-to", "pdf", "--outdir", OUT, ps], check=True, capture_output=True)
 print("saved", os.path.basename(ps))
-# 별도 STROBE 체크리스트 파일(보충 Table S7과 같은 표)
+# Separate STROBE checklist file (same table as Table S7)
 JS = TX(cite="bracket", lines=False, sz=10); JS.cell_ls = 2.0
 JS.para("<b>STROBE checklist</b>"); JS.para(f"Manuscript: {DTITLE}")
 JS.para("Strengthening the Reporting of Observational Studies in Epidemiology (STROBE) checklist with the REporting of studies Conducted using Observational Routinely collected health Data (RECORD) extension items for this ecological study. The same checklist is Supplementary Table S7.", before=6)
 JS.table_fit(brit("STROBE checklist with the RECORD extension items for this ecological study of routinely collected data"), ["Item", "No.", "Where reported"], [[brit(a), b, brit(c)] for a, b, c in CK], "", fs_max=8)
 foot_row(JS, "STROBE, Strengthening the Reporting of Observational Studies in Epidemiology; RECORD, REporting of studies Conducted using Observational Routinely collected health Data. Locations refer to the manuscript and its Supplementary Material.", 8, 12)
-pst = os.path.join(OUT, "STROBE_Checklist_LIPT_ANG.docx"); JS.doc_title = "STROBE Checklist"; JS.save(pst)
-subprocess.run(["/opt/homebrew/bin/soffice", "--headless", "-env:UserInstallation=file:///tmp/lo_lipt_esm_ang", "--convert-to", "pdf", "--outdir", OUT, pst], check=True, capture_output=True)
+pst = os.path.join(OUT, f"STROBE_Checklist{SUF}.docx"); JS.doc_title = "STROBE Checklist"; JS.save(pst)
+subprocess.run([SOFFICE, "--headless", "-env:UserInstallation=file://" + tempfile.mkdtemp(prefix="lo_lipt_"), "--convert-to", "pdf", "--outdir", OUT, pst], check=True, capture_output=True)
 print("saved", os.path.basename(pst))

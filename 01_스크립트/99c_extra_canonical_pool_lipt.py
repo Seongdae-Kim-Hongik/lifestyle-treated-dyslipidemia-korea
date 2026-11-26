@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 99c_extra_canonical_pool_lipt.py - extra covariate pool joined by district code.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, unicodedata
 import numpy as np, pandas as pd
 NFC = lambda s: unicodedata.normalize("NFC", str(s))
@@ -43,3 +43,11 @@ fp = os.path.join(PAN, "EXT_canonical_pool_LIPT_261111.csv"); out.to_csv(fp, ind
 print(f"[99c-lipt] 저장 {fp} {out.shape}"); print(out.describe().T[["min", "50%", "max"]].round(2))
 chk = out[yy].basic_livelihood_rate / out[yy].fbd_region.map(out[out.year.isin([2020, 2024])].groupby("fbd_region").basic_livelihood_rate.mean())
 print(f"[99c-lipt] 정정 뒤 2021-23/(2020·2024 평균) {chk.min():.2f}~{chk.max():.2f}"); assert chk.min() >= 0.2 and chk.max() <= 5
+# Sensitivity-only columns: share of attendees already diagnosed and treated for hypertension and for diabetes (screening
+# existing-disease count / attendees, master columns), interpolated within district; read by 80 through extra_columns.
+MA = pd.read_parquet(os.path.join(PAN, "MASTER_시군구_연도_wide.parquet"), columns=["year", "fbd_region", "chk__유질환자_고혈압_수검자대비비율", "chk__유질환자_당뇨_수검자대비비율"])
+MA["fbd_region"] = MA.fbd_region.map(NFC); MA = MA[(MA.year >= 2011) & (MA.year <= 2024)].rename(columns={"chk__유질환자_고혈압_수검자대비비율": "dx_htn_share", "chk__유질환자_당뇨_수검자대비비율": "dx_dm_share"})
+MA = MA.sort_values(["fbd_region", "year"])
+for c in ["dx_htn_share", "dx_dm_share"]:
+    MA[c] = MA.groupby("fbd_region")[c].transform(lambda s: s.interpolate(method="linear", limit_direction="both"))
+fp2 = os.path.join(PAN, "EXT_undx_dxshare_261110.csv"); MA.to_csv(fp2, index=False, encoding="utf-8-sig"); print(f"[99c-lipt] 저장 {fp2} {MA.shape}, 결측 {MA.isna().sum().to_dict()}")

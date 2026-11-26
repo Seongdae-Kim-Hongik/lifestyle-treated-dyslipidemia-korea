@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 99L3_lipt_suspect_gap.py - treated versus suspected dyslipidemia.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, json, unicodedata, numpy as np, pandas as pd
 from scipy.stats import spearmanr
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE); AN = os.path.join(ROOT, "04_분석"); PAN = os.path.join(ROOT, "02_패널")
@@ -16,7 +16,8 @@ def agg(y0, y1):
     X = t.join(s, how="inner"); X["SIR_lipt"] = X.lipt_cases / X.lipt_E; X["SIR_lipt_pop"] = X.lipt_cases / X.lipt_Epop; X["SIR_susp"] = X.susp_cases / X.susp_E
     X["G"] = np.log(X.SIR_lipt) - np.log(X.SIR_susp); return X
 import geopandas as gpd
-G = gpd.read_file(os.path.expandvars("$ST_DATA_ROOT") + "/기타/R_Studio/FBD_DATA_ZIP/final.shp"); G["region"] = G.region.map(NFC)
+SHP = os.environ.get("ST_SHP", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "boundary", "final.shp"))
+G = gpd.read_file(SHP); G["region"] = G.region.map(NFC)
 L = open(os.path.join(AN, "LIPT", "graph_593.graph")).read().split("\n"); n = int(L[0]); NB = [[] for _ in range(n)]
 for ln in L[1:]:
     t = ln.split()

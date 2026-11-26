@@ -1,5 +1,5 @@
 # kh_constraints_lipt.R - constraints for the Knorr-Held models of this outcome.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 kh_components <- function(g) {
   n <- g$n; nb <- lapply(g$nbs, as.integer)
   stopifnot(length(nb) == n)

@@ -1,5 +1,5 @@
 # 88k_struct_kh.R - structural and review models (nb, struct, review).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 suppressPackageStartupMessages({library(INLA);library(sf);library(spdep);library(jsonlite);library(Matrix)})
 args<-commandArgs(trailingOnly=TRUE);GROUP<-args[1];stopifnot(!is.na(GROUP))
 TAG<-Sys.getenv("TAG",unset="MENTAL");FOCAL<-Sys.getenv("FOCAL",unset="walking_practice_rate");VER<-Sys.getenv("ST_VER",unset="std");SUF<-paste0("_",VER)

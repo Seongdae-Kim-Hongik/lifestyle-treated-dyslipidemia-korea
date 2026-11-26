@@ -1,5 +1,5 @@
 # _st_config.py - shared settings and variable labels.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, re, json, unicodedata
 import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
@@ -101,7 +101,7 @@ def load_config(TAG):
                forced=[K(v) for v in forced], candidates=[K(v) for v in cand], negative_controls=[K(v) for v in neg], sets={k: [K(v) for v in vs] for k, vs in sets.items()},
                sensitivity_sets=sens_sets, sensitivity_only_vars=[K(v) for v in sens_only],
                offset_column=off, offset_sensitivity=off_sens, offset_fallback=off_fallback, exclude_years=excl,
-               vars={v["key"]: dict(v, raw_key=raw) for raw, v in vars_.items()}, rules=rules, note=S.get("note", "") or S.get("outcome_note", ""), fixed_on=S.get("fixed_on", "") or S.get("fixed_before_results", ""), source_json=f"sets_{TAG}{SUF}.json", version=VER or "v1", suffix=SUF,
+               vars={v["key"]: dict(v, raw_key=raw) for raw, v in vars_.items()}, rules=rules, note=S.get("note", "") or S.get("outcome_note", ""), fixed_on=S.get("fixed_on", "") or S.get("fixed_before_results", ""), source_json=f"sets_{TAG}{SUF}.json", version=VER or "default", suffix=SUF,
                offset_E_column=S.get("offset_E_column"), offset_E_file=S.get("offset_E_file"), offset_E_sensitivity_column=S.get("offset_E_sensitivity_column"), offset_E_label=S.get("offset_E_label"))
     return cfg
 if __name__ == "__main__":

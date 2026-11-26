@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
-#  규칙: 컬러, 패널 문자 모두 같은 크기·11/10 기준 2배(48pt)·굵게, 방위표 3배, 그림 안 설명문 금지, 결합은 시군구 코드로만.
-#  패널 문자 = 대문자 A·B(저자 11/10 규칙). 세종 = 미관측(회색 빗금 없이 연회색).
-#  Fig 1 (A) 전 기간 잔차 공간 RR (B) 치료 SIR × 의심 SIR 사분면 · Fig 2 강건 3개 변수의 모형별 RR · 보충 Fig S1 (A) EHSA (B) 두 창 핫·콜드스팟
+# figs_lipt.py: figures for the LIPT manuscript.
+#  Rules: colour; all panel letters the same size (48 pt, bold); north arrow 3x; no explanatory text inside figures; joins by district code only.
+#  Panel letters = upper-case A, B. Sejong = not observed (light grey, no hatching).
+#  Fig 1 (A) whole-period residual spatial RR (B) treatment SIR x suspicion SIR quadrants; Fig 2 model-wise RR of the 3 robust variables; Fig S1 (A) EHSA (B) hot/cold spots in two windows
 import os, unicodedata, numpy as np, pandas as pd, geopandas as gpd, matplotlib
 matplotlib.use("Agg"); import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
@@ -11,31 +11,32 @@ from matplotlib.lines import Line2D
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 from numbers_lipt import load, ROB, SHP, EDU, IMS, MPA
-HERE = os.path.dirname(os.path.abspath(__file__)); B = os.environ.get("LIPT_B", os.path.dirname(os.path.dirname(HERE))); RS = os.path.join(B, "results_std3")
-FIG = os.path.join(HERE, "figs"); OUTF = os.path.join(os.path.dirname(HERE), "out", "Figures"); os.makedirs(FIG, exist_ok=True); os.makedirs(OUTF, exist_ok=True)
+HERE = os.path.dirname(os.path.abspath(__file__)); B = os.environ.get("LIPT_B", os.path.dirname(os.path.dirname(HERE))); RS = os.path.join(B, "results_std3")   # input directory from LIPT_B
+NORESLAB = os.environ.get("LIPT_FIG2_RESLAB", "1") == "0"   # LIPT_FIG2_RESLAB=0: no value labels on the residents-denominator row of Fig. 2 (values in Table 2)
+FIG = os.path.join(HERE, "figs"); OUTF = os.environ.get("LIPT_OUT") or os.path.join(os.path.dirname(HERE), "out", "Figures"); os.makedirs(FIG, exist_ok=True); os.makedirs(OUTF, exist_ok=True)
 MM = 1 / 25.4; W = 174 * MM; DPI = 600; LW = 0.3; PANEL_LABEL_PT = 48
-plt.rcParams.update({"font.family": "Arial", "font.size": 10, "axes.labelsize": 12, "xtick.labelsize": 10, "ytick.labelsize": 10, "legend.fontsize": 10, "legend.title_fontsize": 10, "axes.linewidth": 0.6, "pdf.fonttype": 42})
+plt.rcParams.update({"font.family": "Arial", "font.size": 10, "axes.labelsize": 12, "xtick.labelsize": 10, "ytick.labelsize": 10, "legend.fontsize": 10, "legend.title_fontsize": 10, "axes.linewidth": 0.6, "pdf.fonttype": 42})   # Print-scale axis titles 12 pt, ticks 10 pt (figures drawn at print width)
 NFC = lambda s: unicodedata.normalize("NFC", str(s)).strip()
 N = load()
-GJ = os.path.join(FIG, "districts_5179.geojson")
+GJ = os.path.join(FIG, "districts_5179.geojson")   # Export boundaries to GeoJSON (EPSG:5179) and draw from that file
 if not os.path.exists(GJ): gpd.read_file(SHP).set_crs(epsg=5179, allow_override=True).to_file(GJ, driver="GeoJSON")
 G = gpd.read_file(GJ).set_crs(epsg=5179, allow_override=True); G["cd"] = G.sigungu_cd.astype(str); G["sido"] = G.cd.str[:2]; SIDO = G.dissolve("sido")
 XL = (G.total_bounds[0], G.total_bounds[2]); YL = (G.total_bounds[1], G.total_bounds[3])
 rd = lambda f: pd.read_csv(os.path.join(RS, f), encoding="utf-8-sig", dtype={"sigungu_cd": str})
-def letter(fig, ch, x, y):   # 그림 좌표 하나의 상수 크기
+def letter(fig, ch, x, y):   # Constant size in figure coordinates
     fig.text(x, y, ch, fontsize=PANEL_LABEL_PT, fontweight="bold", va="top", ha="left")
 from matplotlib.patches import Polygon as MPoly, Rectangle
 def mapax(ax, fs=10):
     SIDO.boundary.plot(ax=ax, color="#404040", linewidth=0.45); ax.set_xlim(*XL); ax.set_ylim(*YL); ax.set_axis_off(); ax.set_aspect("equal")
     x0, x1 = XL; y0, y1 = YL; W_ = x1 - x0; H_ = y1 - y0
-
+    # 0-50-100 km black-and-white scale bar and filled-triangle north arrow in the empty Yellow Sea area (clear of Jeju and islands)
     bx, by, bh = x0 + 0.02 * W_, y0 + 0.49 * H_, 0.012 * H_
     for i, c in enumerate(("black", "white")): ax.add_patch(Rectangle((bx + i * 50000, by), 50000, bh, facecolor=c, edgecolor="black", linewidth=0.6))
     for d in (0, 50000, 100000): ax.text(bx + d, by + bh + 0.008 * H_, f"{d // 1000}", ha="center", va="bottom", fontsize=fs)
     ax.text(bx + 50000, by - 0.008 * H_, "km", ha="center", va="top", fontsize=fs)
     ax_, ay = x0 + 0.06 * W_, y0 + 0.60 * H_; hw, hh = 0.022 * W_, 0.075 * H_
     ax.add_patch(MPoly([(ax_ - hw, ay), (ax_, ay + hh), (ax_ + hw, ay)], closed=True, facecolor="black", edgecolor="black", linewidth=0.5))
-    ax.text(ax_, ay + hh + 0.012 * H_, "N", ha="center", va="bottom", fontsize=24, fontweight="bold")   # 방위표 N 24 pt(11/8 기준, 인쇄 폭 그대로)
+    ax.text(ax_, ay + hh + 0.012 * H_, "N", ha="center", va="bottom", fontsize=24, fontweight="bold")   # North arrow N 24 pt (at print width)
 def save(fig, k):
     p = os.path.join(FIG, f"Fig{k}.png"); fig.savefig(p, dpi=DPI, facecolor="white"); plt.close(fig)
     im = Image.open(p).convert("RGB"); im.save(p, dpi=(DPI, DPI))
@@ -44,17 +45,17 @@ def save(fig, k):
 
 S6 = rd("S6_spatial_RR.csv"); S6 = S6[S6.observed]; assert len(S6) == 228
 UNOBS = "#e6e6e6"
-CD = dict(zip(S6.fbd_region.map(NFC), S6.sigungu_cd))   # 같은 파이프라인 출력의 코드표로만 연결
+CD = dict(zip(S6.fbd_region.map(NFC), S6.sigungu_cd))   # Join only through the code table from the same pipeline output
 GAP = pd.read_csv(os.path.join(RS, "S50_lipt_suspect_gap.csv"), encoding="utf-8-sig"); GAP["cd"] = GAP.fbd_region.map(NFC).map(CD); assert GAP.cd.notna().all() and len(GAP) == 228
 QL = ["treated high / suspected low", "treated low / suspected high", "both high", "both low"]
 assert GAP.quadrant.value_counts().to_dict() == N["gap"]["all_2011-24"]["quadrants"]
 
-
+# Fig 1: 6 discrete classes (fixed breaks); No data in every map legend
 BR = [0, 0.8, 0.9, 1, 1.1, 1.25, 99]; LB = ["<0.80", "0.80–0.89", "0.90–0.99", "1.00–1.09", "1.10–1.24", "≥1.25"]
 PAL = ["#2166AC", "#67A9CF", "#D1E5F0", "#FDDBC7", "#EF8A62", "#B2182B"]
 assert BR[0] < N["rr_min"] < BR[1] and BR[-2] < N["rr_max"] < 2
 def nodata(): return Patch(facecolor=UNOBS, edgecolor="#777777", linewidth=LW, label="No data (1)")
-MH = 4.6   # 지도 축 높이(인치)
+MH = 4.6   # Map axis height (inches)
 fh_ = 1.10 + MH + 0.55; fig = plt.figure(figsize=(W, fh_))
 a0 = fig.add_axes([0.00, 1.10 / fh_, 0.49, MH / fh_]); a1 = fig.add_axes([0.51, 1.10 / fh_, 0.49, MH / fh_])
 d = S6.set_index("sigungu_cd"); gg = G.copy(); gg["v"] = gg.cd.map(d.RR); gg["c"] = gg.cd.map(d["class"]); assert int(gg.v.isna().sum()) == 1
@@ -73,7 +74,7 @@ a1.legend(handles=[Patch(facecolor=QP[q], edgecolor="#777777", linewidth=LW, lab
 letter(fig, "A", 0.005, 0.995); letter(fig, "B", 0.515, 0.995)
 s1 = save(fig, 1)
 
-
+# Fig 2: points, intervals and value labels only for the 5 sensitivity models; main model as a grey band (values only in Table 2); legend filled = credible, open = not credible
 LAB = {EDU: "Tertiary\neducation", IMS: "Internal-medicine\nspecialists per\n100,000 residents", MPA: "Moderate-to-\nvigorous\nphysical activity"}
 ORD = [EDU, IMS, MPA]; assert set(ORD) == set(ROB)
 MOD = [("Knorr-Held type II (best fitting)", lambda v: N["s43"][("KH_typeII", v)], "#2166AC", "s"),
@@ -90,6 +91,7 @@ for i, v in enumerate(ORD):
     for (lab, f, col, mk), o in zip(MOD, off):
         e, lo, hi, cr = f(v)[:4]; ax.plot([lo, hi], [i + o] * 2, color=col, lw=1.0, zorder=2)
         ax.plot(e, i + o, marker=mk, ms=5.5, mew=1.0, ls="none", color=col, markerfacecolor=(col if cr else "white"), zorder=3)
+        if NORESLAB and lab == "Expected numbers from residents": continue   # Values only in the Residents column of Table 2
         ax.text(1.163, i + o, f"{e:.3f} ({lo:.3f}–{hi:.3f})", va="center", ha="left", fontsize=9, color=col, transform=ax.transData, clip_on=False)
 ax.axvline(1, color="#404040", lw=0.6, ls=":"); ax.set_yticks(range(len(ORD))); ax.set_yticklabels([LAB[v] for v in ORD]); ax.invert_yaxis(); ax.set_ylim(len(ORD) - 0.5, -0.5)
 xt = [0.94, 0.97, 1.00, 1.03, 1.06, 1.09, 1.12, 1.15]; assert xt[0] <= lo_all and hi_all <= xt[-1], (lo_all, hi_all)
@@ -100,7 +102,7 @@ hl += [Patch(facecolor="#e3e3e3", edgecolor="none", label="Principal model (Tabl
 ax.legend(handles=hl, loc="upper center", bbox_to_anchor=(0.62, -0.11), ncol=2, frameon=False, columnspacing=1.2)
 s2 = save(fig, 2)
 
-
+# Fig S1: canvas 159 mm = embedded 15.9 cm (no scaling, panel letters stay 48 pt); full-category legend; No data in both panels
 WS = 159 * MM
 EH = rd("S11_ehsa.csv")
 CATS = [f"{a} {b}" for b in ("hot", "cold") for a in ("New", "Consecutive", "Intensifying", "Persistent", "Diminishing", "Sporadic", "Oscillating", "Historical")] + ["No pattern"]
@@ -126,7 +128,7 @@ kc = gg.k.value_counts()
 a1.legend(handles=[Patch(facecolor=KP[k], edgecolor="#777777", linewidth=LW, label=f"{KL[k]} ({int(kc.get(k, 0))})") for k in (2, 1, 0, -1, -2, 9)] + [nodata()], title="Windows 2011–2017 and 2018–2024", loc="upper center", bbox_to_anchor=(0.5, -0.01), ncol=1, frameon=False, handlelength=1.1, fontsize=9, title_fontsize=9, labelspacing=0.35)
 letter(fig, "A", 0.005, 0.995); letter(fig, "B", 0.515, 0.995)
 s3 = save(fig, "S1")
-
+# Fig S2: observed standardized ratio and main-model fitted ratio maps (2011-2024, same fixed 6 classes)
 E84 = pd.read_csv(os.path.join(B, "results_extra", "E084_map_values_SIR_obs_fitted.csv"), encoding="utf-8-sig", dtype={"sigungu_cd": str}); E84 = E84[E84.period == "2011-2024"].set_index("sigungu_cd"); assert len(E84) == 228
 BR2 = [0, 0.8, 0.9, 1, 1.1, 1.25, 99]; assert E84.SIR_obs.min() > 0 and E84.SIR_obs.max() < 2
 fhs2 = 0.95 + MS1 + 0.55; fig = plt.figure(figsize=(WS, fhs2))

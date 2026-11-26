@@ -1,5 +1,5 @@
 # plus1_check_lipt.R - check for added constants in offsets and log transforms (log1p variants).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 suppressPackageStartupMessages({library(INLA);library(sf);library(jsonlite)})
 inla.setOption(num.threads="1:1")
 TAG<-"LIPT";VER<-"std3";OUTD<-file.path("..","04_분석",TAG);RES<-file.path(OUTD,paste0("results_",VER),"plus1_check");dir.create(RES,showWarnings=FALSE,recursive=TRUE)

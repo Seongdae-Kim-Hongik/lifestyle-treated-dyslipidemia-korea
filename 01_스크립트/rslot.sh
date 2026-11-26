@@ -1,6 +1,6 @@
 #!/bin/bash
 # rslot.sh - limit the number of concurrent single-threaded R jobs.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 N=${SK_RSLOTS:-9}; D=/tmp/sk_rslots; mkdir -p "$D"
 while :; do
   for i in $(seq 1 "$N"); do

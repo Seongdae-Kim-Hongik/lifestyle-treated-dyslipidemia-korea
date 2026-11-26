@@ -1,4 +1,4 @@
-
+# shared_lipt.py: shared constants for the LIPT manuscript: sentence-case reference titles (checked against sources), Table 1 covariates, Table 2 groups and labels, figure legends.
 TFIX = {"rhee2019guidelines": "2018 guidelines for the management of dyslipidemia in Korea","kang2015korea": "Korea Community Health Survey data profiles",
         "heidari2016sex": "Sex and gender equity in research: rationale for the SAGER guidelines and recommended use",
         "kwon2025dyslipidemia": "Dyslipidemia fact sheet in South Korea, 2024",
@@ -39,14 +39,14 @@ LABEL = {"im_specialists_per_100k": "Internal-medicine specialists", "screening_
          "single_person_household_share": "Single-person households", "urban_population_share": "Urban population share", "physicians_per_1000": "Physicians per 1,000",
          "sex_ratio": "Sex ratio", "fiscal_independence": "Fiscal autonomy", "pop80_share": "Aged 80 years or older"}
 
-FIGCAP = {
+FIGCAP = {   # No colour names; every symbol in the figures is explained
  1: ("Geography of treated dyslipidaemia and its relation to suspected dyslipidaemia among health-screening attendees, Korea, 2011–2024.",
      "(A) Residual spatial rate ratio (RR) by district, the posterior mean of the exponentiated Besag–York–Mollié 2 district effect from the principal model, in 6 fixed classes. Solid outlines, covariate-adjusted residual hot spots (posterior probability that the residual spatial RR exceeded 1 above 0.95); dashed outlines, cold spots (below 0.05); thick lines, province boundaries. (B) Districts classified by whether the sex- and age-standardised ratios of treated dyslipidaemia and of suspected untreated dyslipidaemia (the screening judgement of suspected disease) for 2011–2024 exceeded 1. In both panels, numbers in parentheses are districts; no data, Sejong, published only as a province-level row and excluded; the bar shows 0, 50 and 100 km and the triangle points north. District boundaries as of 2024."),
  2: ("Rate ratios for the 3 subset-stable district characteristics in the space–time, calendar-window and resident-denominator models.",
      "Symbols show rate ratios per 1 standard deviation (SD) and lines their 95% credible intervals (CrIs) from models with Knorr-Held type II (best fitting) and type IV space–time interactions, the principal model fitted to 2011–2017 and to 2018–2024 only, and the principal model with expected numbers computed from residents instead of attendees; the numbers on the right repeat each estimate. Filled symbols, CrI excludes 1; open symbols, CrI includes 1; intervals with a bound shown as 1.000 were classified from unrounded values. The shaded band and the vertical line within it mark the principal-model CrI and estimate, which are given in Table 2. The dotted vertical line marks a rate ratio of 1."),
 }
 
-
+# Data source and observation years for all 16 covariates (from the source, table, obs_year and fill columns of the covariate descriptive table; not invented)
 SRCEN = {
  "urban_population_share": ("Statistics Korea e-Local Indicators, urban-zone population", "2011–2024"),
  "physicians_per_1000": ("Statistics Korea e-Local Indicators, physicians in medical institutions", "2011–2024"),
@@ -68,10 +68,10 @@ SRCEN = {
 UNIT = {"urban_population_share": "% of residents", "physicians_per_1000": "per 1,000 residents", "sex_ratio": "men per 100 women", "fiscal_independence": "% of budget", "pop80_share": "% of residents",
         "im_specialists_per_100k": "per 100,000 residents", "screening_uptake": "% of invited people", "tertiary_educated_share": "% of adults", "obesity_rate": "% of respondents", "high_risk_drinking_rate": "% of respondents",
         "current_smoking_rate": "% of respondents", "walking_practice_rate": "% of respondents", "moderate_pa_rate": "% of respondents", "public_sports_facilities_per_100k": "per 100,000 residents",
-        "basic_livelihood_rate": "% of residents", "single_person_household_share": "% of households"}
+        "basic_livelihood_rate": "% of residents", "single_person_household_share": "% of households"}   # Denominators of ratio variables
 assert set(SRCEN) == set(LABEL) == set(UNIT) and len(SRCEN) == 16
 
-# 11/26 새 인용 키 문장형 표제(고유명사만 대문자)
+# Sentence-case titles for new citation keys (proper nouns capitalized only)
 TFIX.update({"jin2023dyslipidemia": "Dyslipidemia fact sheet in South Korea, 2022",
  "kang2022current": "Current status of the national health screening programs in South Korea",
  "oh2026validation": "Validation of self-reported disease history in Korea: a National Health Insurance cohort study",
@@ -81,7 +81,7 @@ TFIX.update({"jin2023dyslipidemia": "Dyslipidemia fact sheet in South Korea, 202
  "park2021association": "Association of participation in health check-ups with risk factors for cardiovascular diseases",
  "yun2023socioeconomic": "Socioeconomic disparities in the association between all-cause mortality and health check-up participation among healthy middle-aged workers: a nationwide study"})
 
-# 11/26 Table 1용 짧은 출처(약어는 표 각주에 풀이), 연도
+# Short sources for Table 1 (abbreviations expanded in the table footnote), years
 SRCAB = {"urban_population_share": "e-LI", "physicians_per_1000": "e-LI", "sex_ratio": "e-LI", "fiscal_independence": "e-LI", "pop80_share": "RRP",
          "im_specialists_per_100k": "HIRA", "screening_uptake": "NHIS", "tertiary_educated_share": "Census†", "obesity_rate": "KCHS‡",
          "high_risk_drinking_rate": "KCHS‡", "current_smoking_rate": "KCHS‡", "walking_practice_rate": "KCHS‡", "moderate_pa_rate": "KCHS‡",

@@ -1082,5 +1082,73 @@
   "url": "https://www.R-project.org/",
   "year": 2026,
   "accessed": "20 October 2026"
+ },
+ "dattilo1992effects": {
+  "type": "journal",
+  "authors": [
+   "Dattilo AM",
+   "Kris-Etherton PM"
+  ],
+  "title": "Effects of weight reduction on blood lipids and lipoproteins: a meta-analysis",
+  "journal": "Am J Clin Nutr",
+  "year": 1992,
+  "vol": "56",
+  "issue": "2",
+  "pages": "320-328",
+  "doi": "10.1093/ajcn/56.2.320",
+  "pmid": "1386186",
+  "verified": "PubMed esummary 2026-11-26 (ANG r1 C018)"
+ },
+ "brien2011effect": {
+  "type": "journal",
+  "authors": [
+   "Brien SE",
+   "Ronksley PE",
+   "Turner BJ",
+   "Mukamal KJ",
+   "Ghali WA"
+  ],
+  "title": "Effect of alcohol consumption on biological markers associated with risk of coronary heart disease: systematic review and meta-analysis of interventional studies",
+  "journal": "BMJ",
+  "year": 2011,
+  "vol": "342",
+  "issue": "",
+  "pages": "d636",
+  "doi": "10.1136/bmj.d636",
+  "pmid": "21343206",
+  "verified": "PubMed esummary 2026-11-26 (ANG r1 C018)"
+ },
+ "craig1989cigarette": {
+  "type": "journal",
+  "authors": [
+   "Craig WY",
+   "Palomaki GE",
+   "Haddow JE"
+  ],
+  "title": "Cigarette smoking and serum lipid and lipoprotein concentrations: an analysis of published data",
+  "journal": "BMJ",
+  "year": 1989,
+  "vol": "298",
+  "issue": "6676",
+  "pages": "784-788",
+  "doi": "10.1136/bmj.298.6676.784",
+  "pmid": "2496857",
+  "verified": "PubMed esummary 2026-11-26 (ANG r1 C018)"
+ },
+ "park2022multi": {
+  "type": "journal",
+  "authors": [
+   "Park SY",
+   "Shin YJ"
+  ],
+  "title": "A multi-level analysis of factors affecting participation in health screenings in Korea: a focus on household and regional factors",
+  "journal": "J Prev Med Public Health",
+  "year": 2022,
+  "vol": "55",
+  "issue": "2",
+  "pages": "153-163",
+  "doi": "10.3961/jpmph.21.268",
+  "pmid": "35391527",
+  "verified": "PubMed esummary 2026-11-26 (ANG r1 C018)"
  }
 }

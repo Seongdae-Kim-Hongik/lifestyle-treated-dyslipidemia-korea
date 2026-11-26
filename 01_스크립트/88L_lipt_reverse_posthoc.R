@@ -1,5 +1,5 @@
 # 88L_lipt_reverse_posthoc.R - post hoc examination of specialist density.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 suppressPackageStartupMessages({library(INLA);library(sf);library(jsonlite)})
 TAG<-Sys.getenv("TAG","LIPT");VER<-Sys.getenv("ST_VER","std3");inla.setOption(num.threads="1:1")
 OUTD<-file.path("..","04_분석",TAG);RES<-file.path(OUTD,paste0("results_",VER))

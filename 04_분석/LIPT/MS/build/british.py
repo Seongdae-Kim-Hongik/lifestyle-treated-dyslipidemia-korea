@@ -1,4 +1,4 @@
-# british.py — Diabetic Medicine 규정(영국식 철자): 빌더가 원고·표·범례 문자열을 출력 직전에 변환한다(참고문헌 서지는 원문 유지).
+# british.py: British spelling; the builder converts manuscript, table and legend strings just before output (reference metadata kept as in the source).
 import re
 STEMS = ["standardiz", "harmoniz", "summariz", "characteriz", "categoriz", "recogniz", "emphasiz", "minimiz", "maximiz", "prioritiz", "utiliz", "organiz",
          "randomiz", "generaliz", "normaliz", "visualiz", "hospitaliz", "urbaniz", "stabiliz", "specializ", "realiz", "finaliz", "authoriz", "localiz", "conceptualiz", "operationaliz", "penaliz", "parameteriz", "criticiz", "jeopardiz", "mobiliz", "optimiz", "hypothesiz", "emphasiz", "apologiz", "memoriz"]

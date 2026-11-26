@@ -1,5 +1,5 @@
 # 89g_sens_combine.py - combine sensitivity outputs.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.0, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, glob, math, numpy as np, pandas as pd
 from decimal import Decimal, ROUND_HALF_UP
 TAG, VER = sys.argv[1], sys.argv[2]; SUF = f"_{VER}" if VER else ""
