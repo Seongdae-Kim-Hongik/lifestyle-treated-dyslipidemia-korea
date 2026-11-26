@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 45_master_from_refdataset.py - district-year master table read from the reference district-year dataset.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 #  Writes the master table MASTER_*_wide.parquet in the panel folder (read by 99L2, 99c and 80) from table source_master_all_years of the
 #  reference SQLite file (ST_REF_SQLITE, opened read-only). This replaces the upstream wide-file build (50_build_master_panel.py),
 #  whose source-specific inputs are not distributed; both give the same table (same columns, order and values).

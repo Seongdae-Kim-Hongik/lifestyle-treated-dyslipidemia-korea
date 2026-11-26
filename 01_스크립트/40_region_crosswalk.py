@@ -1,5 +1,5 @@
 # 40_region_crosswalk.py - district name and code crosswalk across boundary changes.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, re, pandas as pd
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "02_패널")
@@ -32,13 +32,13 @@ if __name__ == "__main__":
     k["key"] = [make_key(a, b) for a, b in zip(k.sido, k.sigungu)]
     kk = k.groupby(["kchs_code", "key"]).agg(kchs_sido=("sido", "last"), kchs_sigungu=("sigungu", "last"), y0=("year", "min"), y1=("year", "max")).reset_index()
     m = fbd.merge(kk, on="key", how="outer", indicator=True)
-    lines = ["# 시군구 마스터키 점검", f"- FBD 시군구 {len(fbd)}, KCHS 코드 {kk.kchs_code.nunique()}", f"- 양쪽 일치 {int((m._merge=='both').sum())}",
-             "\n## FBD에만 있음(KCHS 이름 불일치 또는 누락)"]
+    lines = ["# District master key check", f"- FBD districts {len(fbd)}, KCHS codes {kk.kchs_code.nunique()}", f"- matched in both {int((m._merge=='both').sum())}",
+             "\n## Only in FBD (KCHS name mismatch or missing)"]
     lines += [f"- {r.key}" for r in m[m._merge == "left_only"].itertuples()]
-    lines += ["\n## KCHS에만 있음(폐지·통합 지역 또는 이름 불일치)"]
+    lines += ["\n## Only in KCHS (abolished or merged areas, or name mismatch)"]
     lines += [f"- {r.key} code={r.kchs_code} {r.y0}~{r.y1}" for r in m[m._merge == "right_only"].itertuples()]
     dup = m[m._merge == "both"].groupby("key").size(); dup = dup[dup > 1]
-    lines += ["\n## 한 key에 KCHS 코드가 둘 이상(코드 변경)"] + [f"- {k_}: {m[m.key==k_].kchs_code.tolist()}" for k_ in dup.index]
+    lines += ["\n## More than one KCHS code for one key (code change)"] + [f"- {k_}: {m[m.key==k_].kchs_code.tolist()}" for k_ in dup.index]
     open(os.path.join(OUT, "시군구_마스터키_점검.md"), "w", encoding="utf-8").write("\n".join(lines))
     m.drop(columns="_merge").to_csv(os.path.join(OUT, "시군구_마스터키.csv"), index=False, encoding="utf-8-sig")
     print("\n".join(lines[:4])); print("left_only", (m._merge=="left_only").sum(), "right_only", (m._merge=="right_only").sum())

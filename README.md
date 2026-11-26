@@ -4,7 +4,7 @@ Analysis code for the manuscript
 
 > *Do lifestyle risk factors explain where Koreans report treated dyslipidemia?*
 
-Archived version: Zenodo, https://doi.org/10.5281/zenodo.24558722 (v1.0.1; v1.0.0: https://doi.org/10.5281/zenodo.24556621). Released under the MIT license.
+Archived version: Zenodo, https://doi.org/10.5281/zenodo.24560215 (v1.0.2). Released under the MIT license.
 
 ## Contents
 
@@ -16,7 +16,7 @@ This repository contains code only. The processed district-year data (master tab
 | `04_분석/LIPT/sets_LIPT_*.json`, `config_LIPT_std3.json` | Covariates, expected directions, forced controls and model settings (principal model `std3`; sensitivity versions `s577`, `s2`, `s8`) |
 | `04_분석/LIPT/MS/` | Scripts that read the result tables and write every number, table and figure in the manuscript and Supplementary Material, including `content_lipt.py` and `content_manuscript_lipt.py`, which generate the Methods and Results text (the draft source of the Introduction and Discussion is not included) |
 
-Folder names, some column names, region names and some printed check messages are in Korean because the source tables are Korean; code comments are in English, and every script in `01_스크립트/` and `04_분석/LIPT/` starts with a short English header naming its purpose. Inputs and outputs are listed in the Pipeline table below; the outputs (panels, result tables, figures and reports) are written locally when the code is run and are not part of this repository.
+Folder names, file names, column names and region names are in Korean because the source tables are Korean (see Korean identifiers below); code comments and printed messages are in English. Every script in `01_스크립트/` and `04_분석/LIPT/` starts with a short English header naming its purpose. Inputs and outputs are listed in the Pipeline table below; the outputs (panels, result tables, figures and reports) are written locally when the code is run and are not part of this repository.
 
 ## Data sources
 
@@ -38,10 +38,10 @@ On macOS, unpack the archive with `ditto -x -k <zip> <folder>` or Python (`pytho
 | `ST_REF_SQLITE` | `45`, `99L2`, `07` | Path of the reference district-year dataset (SQLite file, opened read-only) |
 | `ST_FBDZIP` | `99L2` (through `38_build_Estd_all.py`) | Folder of resident population by sex and 5-year age group, one file per year (`<year>.csv`, 2011-2024), with the corrected Changwon 2023 values. `run_std3_chain.sh` also accepts the older name `ST_FBDZIP_CORRECTED` |
 | `ST_CANON` | `99c` | Covariate folder of the reference dataset holding `01_공변량_229x2011_2024.csv` and `00_시군구_229_대응표.csv`; if unset, `$ST_DATA_ROOT/기타/R_Studio/FBD_DATA_ZIP/통합자료_261030` is used |
-| `ST_SHP` | `41`, `80`, `81`, `82L`, `85`, `86`, `88*`, `99L3`, `plus1_check_lipt.R` | District boundary shapefile (229 districts, 2024 boundaries); default `data/boundary/final.shp` |
+| `ST_SHP` | `41`, `80`, `81`, `85`, `86`, `88*`, `99L3`, `plus1_check_lipt.R` | District boundary shapefile (229 districts, 2024 boundaries); default `data/boundary/final.shp` |
 | `ST_GRAPH` | `81`, `85`, `88k`, `88L*`, `plus1_check_lipt.R` | Principal adjacency graph, `04_분석/LIPT/graph_593.graph` written by `41_build_graph.py` (229 districts, 593 links); set by `run_std3_chain.sh` |
 | `KOSIS_KEY` | `99N`, `32L` | Own KOSIS Open API key; needed only when a source table is not yet on disk |
-| `ST_VER`, `TAG` | `80`, `82L`, `83` (through `_st_config.py`), `81`, `88*` | Model version (`std3`, or `s577`, `s2`, `s8`) and outcome tag (`LIPT`); set by `run_std3_chain.sh` |
+| `ST_VER`, `TAG` | `80` (through `_st_config.py`), `81`, `88*` | Model version (`std3`, or `s577`, `s2`, `s8`) and outcome tag (`LIPT`); set by `run_std3_chain.sh` |
 | `ST_THREADS` | `81` | INLA threads per model (the chain uses 1) |
 | `ST_MV_STOP`, `ST_MV_RANGE`, `ST_MV_N` | `81` | `ST_MV_STOP=1` stops after writing the multiverse specification; `ST_MV_RANGE=a-b` fits multiverse subsets a to b (part files merged by the next main run); `ST_MV_N` overrides the multiverse size (2 for the sensitivity versions) |
 | `GROUP`, `NCO`, `FOCAL`, `SMOOTH`, `DROPS`, `NS`, `SUB`, `KH_INIT`, `ROBV_OVERRIDE` | `88g`, `88h`, `88k` | Sensitivity group (1-6), comparison outcomes (`INFECT,GCA`) and optional settings of the sensitivity and Knorr-Held scripts; the chain sets `GROUP` and `NCO` |
@@ -62,7 +62,7 @@ Run from the repository root after setting the environment variables above; `bas
 | 3 | `99c_extra_canonical_pool_lipt.py`, then `07_basic_livelihood_official_lipt.py 02_패널/EXT_canonical_pool_LIPT_261111.csv 02_패널/EXT_canonical_pool_LIPT_261111.csv` (source and destination; the file is rewritten in place) | Specialists, tertiary education, basic livelihood security and unmet need joined by district code (`ST_CANON`, master table), plus `02_패널/EXT_undx_dxshare_261110.csv` (shares already diagnosed with hypertension or diabetes, sensitivity only); the basic livelihood security rate is then replaced by the official recipient-based rate of `ST_REF_SQLITE`. Run 07 after every 99c run |
 | 4 | `80_build_disease_panel_v.py LIPT` (`ST_VER=std3`; reads the master table, `LIPT_Estd3.csv`, both step 3 files and `ST_SHP`) | Analytic panel `04_분석/LIPT/panel_LIPT_std3.csv` |
 | 5 | `81_fit_inla.R LIPT` (`ST_VER=std3`, `ST_GRAPH=04_분석/LIPT/graph_593.graph`, `ST_THREADS=1`; see `04_분석/LIPT/run_std3_chain.sh`) | Principal model, set comparison, 200-subset multiverse, window models |
-| 6 | `82L_core_report_nwin.py`, `83_check_report.py`, `85_window_maps.R`, `86_yearly_maps_ehsa.py`, `87_window_grid.py` | Core report, maps and emerging hot spot analysis |
+| 6 | `85_window_maps.R`, `86_yearly_maps_ehsa.py`, `87_window_grid.py` | Window maps and emerging hot spot analysis |
 | 7 | `88g_sens_prep.py LIPT std3 INFECT,GCA`, `88g_sens_suite.R` (`GROUP=1..6`), `88h_ppc_varpart.R`, `88k_struct_kh.R` (nb, struct, review), `88k_struct_kh_lipt.R` with `kh_constraints_lipt.R` (kh), `89g_sens_combine.py` | Sensitivity analyses, comparison outcomes, Knorr-Held models, review outputs |
 | 8 | `88L_lipt_reverse_posthoc.R`, `88L_P5fix_lipt.R`, `88L2_lipt_mpa_precise.R`, `plus1_check_lipt.R` | Post hoc examination of specialist density (specialists per area = specialist count divided by area); unrounded interval for physical activity; check that no constant is added to the offset and that the log(1 + x) transform does not drive the results |
 | 9 | `99L3_lipt_suspect_gap.py` | Treated versus suspected dyslipidemia |
@@ -74,6 +74,13 @@ The boundary file is found at `data/boundary/final.shp` by default; set `ST_SHP`
 
 R 4.6.0 with R-INLA 25.10.19, spdep and sf; Python 3.9 with pandas, geopandas, numpy, scipy, matplotlib and python-docx. Newer INLA may shift DIC/WAIC a few points without changing any IRR. Each INLA fit uses one thread (`num.threads = "1:1"`).
 
+## Changes in v1.0.2
+
+- Removed a list of identifiers used only by a private manuscript check and a hard-coded contact address from the manuscript builder; contact details are now supplied at build time (`LIPT_EMAIL`, `LIPT_PHONE`).
+- Comments, docstrings and printed messages are in English; Korean remains only in data identifiers (see Korean identifiers).
+- Tool paths are found on the system path (`SOFFICE`, `PDFTOTEXT`) and temporary folders use the system default; paragraph properties in the generated Word files follow the schema order.
+- The internal summary-report scripts were removed (they produce no manuscript output). No numerical change.
+
 ## Changes in v1.0.1
 
 Public code tidy-up; no change to any number, table or figure.
@@ -82,8 +89,12 @@ Public code tidy-up; no change to any number, table or figure.
 - Code comments checked so that all are in English; script headers updated to v1.0.1.
 - The boundary file in `99L3_lipt_suspect_gap.py` is read from `ST_SHP`, as in the other scripts.
 - The default version argument of `85_window_maps.R`, `86_yearly_maps_ehsa.py` and `87_window_grid.py` is `std3`, matching the commands above.
-- `04_분석/LIPT/run_std3_chain.sh` calls `82L_core_report_nwin.py` (the report script in this repository); the optional pre-model data check runs only when `ST_DATA_GATE` is set.
+- The internal summary-report scripts used during analysis are not part of this repository (they do not produce any manuscript output); in `04_분석/LIPT/run_std3_chain.sh` the optional pre-model data check runs only when `ST_DATA_GATE` is set.
 - Scripts that were needed but missing are added: `36_build_national_agerates.py` (helpers imported by `38_build_Estd_all.py`; the hard-coded population path is replaced by `ST_AGEPOP`), `32L_checkup_district_long.py` (district screening tables N098 and N105 from KOSIS), `45_master_from_refdataset.py` (master table from the reference dataset) and `41_build_graph.py` (adjacency graph from the boundary file; the result is identical to the graph used for the published models).
 - `99L2_build_Estd3_lipt.py` takes the district-year skeleton from the reference dataset and computes the share of residents aged 80+ from `ST_FBDZIP`, instead of reading panels of other outcomes; `99c_extra_canonical_pool_lipt.py` also writes `EXT_undx_dxshare_261110.csv`. The expected-count file, covariate pool and analytic panel built this way are byte-identical to those behind the manuscript.
 - `run_std3_chain.sh` runs steps 1, 1b and `07_basic_livelihood_official_lipt.py` (with its source and destination arguments) before the panel step, so that the panel uses the official basic livelihood security rate; it reads `ST_FBDZIP` (the older name `ST_FBDZIP_CORRECTED` is still accepted).
 - README: environment variable table (names as read by the code, including `ST_CANON`), unpacking note, and the inputs of each pipeline step.
+
+## Korean identifiers
+
+The source statistics and the reference dataset are published in Korean, and the code reads their file names, folder names, column names, category values and region names exactly as they appear there, so these Korean strings have not been translated: translating them would stop the code from finding its inputs or matching their values. The same applies to the Korean names of intermediate files that one script writes and another reads, to the Korean labels that the core report uses and its check script looks for, and to the Korean values written to the master table and its variable dictionary. Apart from the Korean core result report described under Contents, every other piece of text in the code (comments, messages, assertion texts and the merge and key check reports) is in English.

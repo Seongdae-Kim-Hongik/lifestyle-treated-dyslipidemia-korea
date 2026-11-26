@@ -1,5 +1,5 @@
 # 81_fit_inla.R - principal NB BYM2 model, set comparison, multiverse and window models (R-INLA).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 suppressPackageStartupMessages({library(INLA);library(sf);library(spdep);library(jsonlite)})
 args<-commandArgs(trailingOnly=TRUE);TAG<-args[1];stopifnot(!is.na(TAG))
 ROOT<-normalizePath(file.path(dirname(sub("--file=","",grep("--file=",commandArgs(),value=TRUE))),".."))

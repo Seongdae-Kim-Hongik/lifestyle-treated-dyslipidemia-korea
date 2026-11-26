@@ -1,5 +1,5 @@
 # 89g_sens_combine.py - combine sensitivity outputs.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, glob, math, numpy as np, pandas as pd
 from decimal import Decimal, ROUND_HALF_UP
 TAG, VER = sys.argv[1], sys.argv[2]; SUF = f"_{VER}" if VER else ""
@@ -39,7 +39,7 @@ oos = pd.read_csv(f"{R}/S41_oos2024.csv") if os.path.exists(f"{R}/S41_oos2024.cs
 bw = P[P.analysis == "bw_twoway"]; bw = bw[bw["cov"].str.contains("__")][["cov", "IRR", "lo", "hi", "cred"]]
 k = P.groupby("analysis").first()[["robust_kept", "n_robust", "hot_jaccard_vs_main", "WAIC", "note"]]
 with open(f"{R}/S41_summary.md", "w") as f:
-    f.write(f"# {TAG} {VER} 민감도 묶음 요약(88g, {len(k)}개 적합)\n\n## 강건 공변량 유지(대안 분석 {alt.analysis.nunique()}개)\n{ret.to_markdown(index=False)}\n\n## 지역 내·지역 간(이원 중심화)\n{bw.to_markdown(index=False)}\n\n")
-    f.write(f"## 대체값 교란 Rubin 결합\n{nz[nz['cov'].isin(ROB)].to_markdown(index=False)}\n\n## 비교 결과\n{nc.to_markdown(index=False)}\n\n## E-value\n{pd.DataFrame(E).to_markdown(index=False)}\n\n")
-    f.write(f"## 2024 조건부 검증\n{oos.to_markdown(index=False) if oos is not None else '-'}\n\n## 분석별\n{k.to_markdown()}\n")
+    f.write(f"# {TAG} {VER} sensitivity bundle summary (88g, {len(k)} fits)\n\n## Robust covariates retained ({alt.analysis.nunique()} alternative analyses)\n{ret.to_markdown(index=False)}\n\n## Within and between districts (two-way centring)\n{bw.to_markdown(index=False)}\n\n")
+    f.write(f"## Rubin pooling over perturbed substitute values\n{nz[nz['cov'].isin(ROB)].to_markdown(index=False)}\n\n## Comparison outcomes\n{nc.to_markdown(index=False)}\n\n## E-value\n{pd.DataFrame(E).to_markdown(index=False)}\n\n")
+    f.write(f"## Conditional validation in 2024\n{oos.to_markdown(index=False) if oos is not None else '-'}\n\n## By analysis\n{k.to_markdown()}\n")
 print(open(f"{R}/S41_summary.md").read()[:6000])

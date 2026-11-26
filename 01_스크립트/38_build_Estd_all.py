@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 38_build_Estd_all.py - expected counts by indirect standardization (shared helper).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, re, sys, glob, json, importlib.util, struct, zlib
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
@@ -14,7 +14,7 @@ TAGS = ["PERIO", "INFECT", "ARTH", "HTN", "MENTAL", "DM", "LIVER", "BRCA", "GCA"
 DEF = {
     "PERIO": [("K00", "K01"), ("K03", "K08")], "INFECT": [("A00", "B99")], "ARTH": [("M00", "M19"), ("M22", "M25")], "HTN": [("I10", "I15")],
     "MENTAL": [("F00", "F99")], "DM": [("E10", "E14")], "LIVER": [("K70", "K77")], "BRCA": [("C50", "C50")], "GCA": [("C16", "C16")]}
-DEF_TXT = {"PERIO": "K00-K01,K03-K08 (건보 치주질환 정의; K02 치아우식증 제외)", "INFECT": "A00-B99", "ARTH": "M00-M19,M22-M25", "HTN": "I10-I15", "MENTAL": "F00-F99",
+DEF_TXT = {"PERIO": "K00-K01,K03-K08 (NHIS periodontal disease definition; K02 dental caries excluded)", "INFECT": "A00-B99", "ARTH": "M00-M19,M22-M25", "HTN": "I10-I15", "MENTAL": "F00-F99",
            "DM": "E10-E14", "LIVER": "K70-K77", "BRCA": "C50", "GCA": "C16"}
 
 def hwp_text(path):
@@ -81,7 +81,7 @@ def overlap(r, D):
 def build_mapping():
     r19 = ref_table(os.path.join(SRC, "2019_298 질병분류참조표.hwp")); r20 = ref_table(os.path.join(SRC, "2020_298 질병분류참조표.hwp"))
     assert sorted(r19) == list(range(1, 299)) and sorted(r20) == list(range(1, 299))
-    assert all(r19[c][1] == r20[c][1] for c in r19), "2019·2020 참조표 ICD 불일치"
+    assert all(r19[c][1] == r20[c][1] for c in r19), "ICD codes differ between the 2019 and 2020 reference tables"
     import kosis_api as K
     meta = [x for x in K.table_meta("350", "TX_35001_A061", "ITM") if x.get("OBJ_ID") == "15350AF5"]
     assert meta[0]["ITM_NM"] == "총계" and len(meta) >= 299
@@ -94,26 +94,26 @@ def build_mapping():
             st = [overlap(r, DEF[T]) for r in icd_ranges(icd)]
             if all(s == "none" for s in st): continue
             inc = all(s == "full" for s in st)
-            why = (f"참조표 ICD {icd} 가 정의 {DEF_TXT[T]} 안에 완전히 포함" if inc else
-                   f"참조표 ICD {icd} 중 일부만 정의와 겹침 → 제외(정의 밖 코드가 섞임)")
+            why = (f"reference-table ICD {icd} lies fully within the definition {DEF_TXT[T]}" if inc else
+                   f"reference-table ICD {icd} only partly overlaps the definition -> excluded (codes outside the definition mixed in)")
             rows.append(dict(TAG=T, 질환정의_ICD=DEF_TXT[T], code298=c, kosis_itm_id=kn[c][0], kosis_명칭=kn[c][1], 참조표_명칭=nm, 참조표_ICD=icd,
                              명칭일치=same, 포함=inc, 판단근거=why))
-    BND = {"PERIO": {180: "치아우식증 K02 — 건보 치주질환 정의(K00~K01,K03~K08)가 K02를 빼므로 제외", 182: "기타 구강·타액선·턱 K09-K14 — K08 바깥"},
-           "ARTH": {202: "사지의 후천성 변형 M20-M21 — 정의가 M20-M21을 건너뜀", 204: "전신성 결합조직 장애 M30-M36(루푸스 등) — 관절염 정의 밖"},
-           "INFECT": {250: "선천성 감염·기생충 질환 P35-P37 — 이름은 감염이나 ICD P장(주산기)", 251: "출생전후기 특이 감염 P38-P39 — P장", 291: "무증상 HIV 감염 상태 Z21 — Z장", 292: "전염성 질환 관련 건강위험 Z20,Z22-Z29 — Z장",
-                      198: "피부·피하조직 감염 L00-L08 — L장", 165: "급성 인두염·편도염 J02-J03 — 호흡기 J장", 168: "인플루엔자 J09-J11 — J장", 169: "폐렴 J12-J18 — J장"},
-           "HTN": {237: "임신 중 고혈압성 장애 O10-O16 — O장"}, "DM": {111: "기타 내분비·영양·대사 E15-E35 등 — E10-E14 바깥"},
-           "LIVER": {63: "간 및 간내담관 악성신생물 C22 — 간암은 C장", 38: "기타 바이러스 간염 B15,B17-B19 — 감염병 장(INFECT에 포함)", 37: "급성 B형 간염 B16 — 감염병 장", 195: "담석·담낭염 K80-K81 — K77 바깥"},
-           "BRCA": {91: "유방의 양성신생물 D24 — 악성 아님", 223: "유방의 장애 N60-N64 — 악성 아님", 89: "자궁경부 상피내암 D06 — 유방 아님"},
-           "GCA": {183: "위·십이지장궤양 K25-K27 — 악성 아님", 59: "식도 악성신생물 C15", 65: "기타 소화기관 악성신생물 C17,C23-C24,C26"},
-           "MENTAL": {122: "알쯔하이머병 G30 — 신경계 G장(치매 F00-F03은 112에 포함)", 121: "파킨슨병 G20 — G장"}}
+    BND = {"PERIO": {180: "dental caries K02 - excluded because the NHIS periodontal definition (K00-K01, K03-K08) omits K02", 182: "other oral cavity, salivary glands and jaws K09-K14 - outside K08"},
+           "ARTH": {202: "acquired deformities of limbs M20-M21 - the definition skips M20-M21", 204: "systemic connective tissue disorders M30-M36 (lupus, etc.) - outside the arthritis definition"},
+           "INFECT": {250: "congenital infectious and parasitic diseases P35-P37 - infection by name but ICD chapter P (perinatal)", 251: "infections specific to the perinatal period P38-P39 - chapter P", 291: "asymptomatic HIV infection status Z21 - chapter Z", 292: "health hazards related to communicable diseases Z20,Z22-Z29 - chapter Z",
+                      198: "infections of the skin and subcutaneous tissue L00-L08 - chapter L", 165: "acute pharyngitis and tonsillitis J02-J03 - respiratory chapter J", 168: "influenza J09-J11 - chapter J", 169: "pneumonia J12-J18 - chapter J"},
+           "HTN": {237: "hypertensive disorders in pregnancy O10-O16 - chapter O"}, "DM": {111: "other endocrine, nutritional and metabolic E15-E35, etc. - outside E10-E14"},
+           "LIVER": {63: "malignant neoplasm of liver and intrahepatic bile ducts C22 - liver cancer is chapter C", 38: "other viral hepatitis B15,B17-B19 - infectious disease chapter (in INFECT)", 37: "acute hepatitis B B16 - infectious disease chapter", 195: "cholelithiasis and cholecystitis K80-K81 - outside K77"},
+           "BRCA": {91: "benign neoplasm of breast D24 - not malignant", 223: "disorders of breast N60-N64 - not malignant", 89: "carcinoma in situ of cervix D06 - not breast"},
+           "GCA": {183: "gastric and duodenal ulcer K25-K27 - not malignant", 59: "malignant neoplasm of oesophagus C15", 65: "malignant neoplasms of other digestive organs C17,C23-C24,C26"},
+           "MENTAL": {122: "Alzheimer disease G30 - nervous system chapter G (dementia F00-F03 is in 112)", 121: "Parkinson disease G20 - chapter G"}}
     for T, dd in BND.items():
         for c, why in dd.items():
             nm, icd = r20[c]
             rows.append(dict(TAG=T, 질환정의_ICD=DEF_TXT[T], code298=c, kosis_itm_id=kn[c][0], kosis_명칭=kn[c][1], 참조표_명칭=nm, 참조표_ICD=icd,
-                             명칭일치=hg(nm)[:6] == hg(kn[c][1])[:6], 포함=False, 판단근거="경계 코드 제외: " + why))
+                             명칭일치=hg(nm)[:6] == hg(kn[c][1])[:6], 포함=False, 판단근거="boundary code excluded: " + why))
     M = pd.DataFrame(rows).sort_values(["TAG", "포함", "code298"], ascending=[True, False, True])
-    M["용도"] = "전국 연령별 기준율(연령 프로파일) 산출 전용 — 세부 분류 진료실인원 합은 한 사람이 여러 분류로 진료받으면 중복 계산되므로 실인원이 아님; 수준은 연도별 ΣE_std=Σcases 재척도로 관측에 맞춤"
+    M["용도"] = "for national age-specific reference rates (age profile) only - the sum of patients over detailed categories is not a count of persons, because a person treated in several categories is counted more than once; the level is matched to the observed counts by rescaling so that sum E_std = sum cases in each year"
     assert M["명칭일치"].all(), M[~M["명칭일치"]]
     assert not M[M["포함"]].duplicated(["TAG", "code298"]).any()
     def expand(D):
@@ -146,13 +146,13 @@ def kosis_codes(codes):
         for (yr, code), g in d.groupby(["PRD_DE", "code"]):
             tot = g.loc[g.C3_NM.str.replace(" ", "").isin(["합계", "계"]), "DT"]
             ag = g[~g.C3_NM.str.replace(" ", "").isin(["합계", "계"])]
-            if len(tot) == 0 and ag.DT.sum() == 0: tot = pd.Series([0.0]); kdiff.append((int(yr), int(code), "총계 행 없음·연령 전부 0 → 0"))
+            if len(tot) == 0 and ag.DT.sum() == 0: tot = pd.Series([0.0]); kdiff.append((int(yr), int(code), "no total row and all ages 0 -> 0"))
             assert len(tot) == 1, (tbl, yr, code); dif = ag.DT.sum() - tot.iloc[0]
-            assert abs(dif) <= max(20, 1e-3 * tot.iloc[0]), f"KOSIS {tbl} {yr} {code}: 연령 합 {ag.DT.sum()} ≠ 총계 {tot.iloc[0]}"
+            assert abs(dif) <= max(20, 1e-3 * tot.iloc[0]), f"KOSIS {tbl} {yr} {code}: sum over ages {ag.DT.sum()} != total {tot.iloc[0]}"
             if dif: kdiff.append((int(yr), int(code), int(dif)))
             for nm, v in zip(ag.C3_NM, ag.DT): out.append((int(yr), int(code), m36.age10(int(re.findall(r"\d+", nm)[0])), float(v)))
             out.append((int(yr), int(code), "TOTAL", float(tot.iloc[0])))
-        print(f"[38] KOSIS {tbl} {y0}-{y1}: 코드 {d.code.nunique()}개 · 연령 {d.C3_NM.nunique()-1}구간")
+        print(f"[38] KOSIS {tbl} {y0}-{y1}: {d.code.nunique()} codes, {d.C3_NM.nunique()-1} age groups")
     return out, kdiff
 def excel_codes(codes):
     out = []
@@ -161,10 +161,10 @@ def excel_codes(codes):
         assert sorted({c for c, _ in vals}) == list(range(1, 299))
         ages = sorted({a for _, a in vals if a != "TOTAL"}); assert len(ages) == 17
         for c in codes:
-            s = sum(vals[(c, a)] for a in ages); assert s == vals[(c, "TOTAL")], f"{yr} {c}: 연령 합 ≠ 총계"
+            s = sum(vals[(c, a)] for a in ages); assert s == vals[(c, "TOTAL")], f"{yr} {c}: sum over ages != total"
             for a in ages: out.append((yr, c, m36.age10(a), vals[(c, a)]))
             out.append((yr, c, "TOTAL", vals[(c, "TOTAL")]))
-        print(f"[38] {yr} 엑셀: 코드 {len(codes)}개 연령 합=총계 확인")
+        print(f"[38] {yr} Excel: {len(codes)} codes, sum over ages = total checked")
     return out
 
 def shares_total():
@@ -209,23 +209,23 @@ def agepop(P, W):
     for r, y, off in zip(P.fbd_region, P.year, P.offset):
         if (r, y) in W.index: s = W.loc[(r, y)].values
         else:
-            assert r in regs, f"연령 비율 없음: {r}"; ys = W.loc[r].index.values; src = int(ys[np.argmin(np.abs(ys - y))]); s = W.loc[(r, src)].values; fb.append((r, y, src))
+            assert r in regs, f"no age shares: {r}"; ys = W.loc[r].index.values; src = int(ys[np.argmin(np.abs(ys - y))]); s = W.loc[(r, src)].values; fb.append((r, y, src))
         rows += [(y, r, ag, off * sh) for ag, sh in zip(AGES, s)]
     return pd.DataFrame(rows, columns=["year", "fbd_region", "age10", "pop"]), fb
 
 if __name__ == "__main__":
     M, cover = build_mapping()
     M.to_csv(os.path.join(ROOT, "04_분석", "00_298코드_질환매핑.csv"), index=False, encoding="utf-8-sig")
-    print("[38] 매핑 포함 코드:", {T: M[(M.TAG == T) & M["포함"]].code298.tolist() for T in TAGS})
-    print("[38] 부분 겹침(제외):", M[~M["포함"]][["TAG", "code298", "참조표_ICD"]].values.tolist())
-    print("[38] 정의 구간 중 포함 코드로 덮이지 않는 3자리 ICD(298 목록에 없는 코드 포함):", {T: v for T, v in cover.items() if v})
+    print("[38] codes included in the mapping:", {T: M[(M.TAG == T) & M["포함"]].code298.tolist() for T in TAGS})
+    print("[38] partial overlap (excluded):", M[~M["포함"]][["TAG", "code298", "참조표_ICD"]].values.tolist())
+    print("[38] 3-character ICD codes in the definition not covered by included codes (including codes not in the 298 list):", {T: v for T, v in cover.items() if v})
     CODES = {T: M[(M.TAG == T) & M["포함"]].code298.astype(int).tolist() for T in TAGS}
     assert CODES["MENTAL"] == list(range(112, 120)) and CODES["PERIO"] == [181] and CODES["ARTH"] == [200, 201, 203] and CODES["HTN"] == [145, 146] \
         and CODES["LIVER"] == [193, 194] and CODES["DM"] == [104] and CODES["BRCA"] == [73] and CODES["GCA"] == [60] and CODES["INFECT"] == list(range(1, 58))
     allc = sorted({c for v in CODES.values() for c in v})
     ko, kdiff = kosis_codes(allc)
     L = pd.DataFrame(ko + excel_codes(allc), columns=["year", "code", "age10", "patients"]).groupby(["year", "code", "age10"], as_index=False).patients.sum()
-    print(f"[38] KOSIS 연령 합-총계 차이(허용·기록): {kdiff if kdiff else '없음'}")
+    print(f"[38] KOSIS differences between sum over ages and total (allowed, recorded): {kdiff if kdiff else 'none'}")
     A = L[L.age10 != "TOTAL"]; assert sorted(A.year.unique()) == list(range(2011, 2025))
     WT = shares_total(); WF = None; RATES = []; SUMMARY = []
     for T in TAGS:
@@ -234,7 +234,7 @@ if __name__ == "__main__":
         if T == "BRCA":
             WF, FT, um = shares_female(P.fbd_region.unique())
             FT.index.names = ["fbd_region", "year"]; chk = P.set_index(["fbd_region", "year"]).offset; j = chk.to_frame().join(FT, how="inner"); rr = (j.female_total / j.offset)
-            print(f"[38] BRCA 여성 연령 비율: 시군구-연도 {WF.shape[0]}/{len(P)} 매칭 · FBD 여성 총계/패널 offset 비 중앙 {rr.median():.4f} (P1 {rr.quantile(.01):.3f}, P99 {rr.quantile(.99):.3f}; 청주 2011-13은 청원 합산 1.22, 세종은 원자료 중복행으로 2.0 — 비율만 쓰므로 무영향) · 미매칭 이름 {len(um)}건(폐지 지명·통합시 하위 구)")
+            print(f"[38] BRCA female age shares: district-years {WF.shape[0]}/{len(P)} matched; median ratio of FBD female total to panel offset {rr.median():.4f} (P1 {rr.quantile(.01):.3f}, P99 {rr.quantile(.99):.3f}; Cheongju 2011-13 is 1.22 with Cheongwon merged, Sejong is 2.0 because of duplicate source rows; no effect since only shares are used); unmatched names {len(um)} (abolished names, sub-districts of merged cities)")
             W = WF
         else: W = WT
         AP, fb = agepop(P, W)
@@ -253,14 +253,14 @@ if __name__ == "__main__":
         if T == "MENTAL":
             old = pd.read_csv(f, encoding="utf-8-sig"); old["fbd_region"] = old.fbd_region.map(NFC)
             cmp = old.merge(out, on=["year", "fbd_region"], suffixes=("_old", "_new")); rel = (cmp.E_std_new / cmp.E_std_old - 1).abs().max()
-            print(f"[38] MENTAL 재현 대조: {len(cmp)}행, E_std 최대 상대차 {rel:.2e} (기존 02_패널/MENTAL_Estd.csv 그대로 사용)"); assert rel < 1e-6
+            print(f"[38] MENTAL reproduction check: {len(cmp)} rows, max relative difference in E_std {rel:.2e} (existing 02_패널/MENTAL_Estd.csv used as is)"); assert rel < 1e-6
         else:
             out.to_csv(f, index=False, encoding="utf-8-sig")
         G = D.groupby("fbd_region").agg(cases=("cases", "sum"), E=("E", "sum"), Es=("E_std", "sum"), old=("older_adult_share_raw", "mean"))
         rc, _ = spearmanr(G.cases / G.E, G.old); rs, _ = spearmanr(G.cases / G.Es, G.old)
         SUMMARY.append((T, CODES[T], len(fb), round(rc, 3), round(rs, 3), round(float((D.E_std / D.E).min()), 3), round(float((D.E_std / D.E).max()), 3)))
-        print(f"[38] {T}: 코드 {CODES[T] if len(CODES[T]) < 10 else str(CODES[T][0])+'~'+str(CODES[T][-1])} · 연령 비율 대체 {len(fb)}건 · SIR–고령 rho crude {rc:+.3f} → std {rs:+.3f} · E_std/E {SUMMARY[-1][5]}~{SUMMARY[-1][6]}")
+        print(f"[38] {T}: codes {CODES[T] if len(CODES[T]) < 10 else str(CODES[T][0])+'~'+str(CODES[T][-1])}, age shares substituted {len(fb)}, SIR-older-age rho crude {rc:+.3f} -> std {rs:+.3f}, E_std/E {SUMMARY[-1][5]}~{SUMMARY[-1][6]}")
     R = pd.concat(RATES); R["age10"] = pd.Categorical(R.age10, AGES, ordered=True)
     R.sort_values(["TAG", "year", "age10"])[["TAG", "year", "age10", "patients_sum", "denom_nat", "rate"]].to_csv(os.path.join(ROOT, "02_패널", "ALL_national_agerates_std.csv"), index=False, encoding="utf-8-sig")
-    print("[38] 저장: 02_패널/<TAG>_Estd.csv(8개, MENTAL 기존 유지) · 02_패널/ALL_national_agerates_std.csv · 04_분석/00_298코드_질환매핑.csv")
+    print("[38] saved: 02_패널/<TAG>_Estd.csv (8 files, existing MENTAL kept), 02_패널/ALL_national_agerates_std.csv, 04_분석/00_298코드_질환매핑.csv")
     print(R[R.year == 2024].pivot(index="age10", columns="TAG", values="rate").mul(1e3).round(2).to_string())

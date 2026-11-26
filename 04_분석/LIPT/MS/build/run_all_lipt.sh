@@ -1,7 +1,7 @@
 #!/bin/bash
 # Full build: figures -> manuscript and title page -> supplement and STROBE -> cover letter -> sanitize (author metadata kept) -> PDF -> checks
 set -e; cd "$(dirname "$0")"; O="${LIPT_OUT:-../out}"; S="${LIPT_SUFFIX:-}"; mkdir -p "$O"
-SOFFICE="${SOFFICE:-$(command -v soffice)}"; LOPROF="$(mktemp -d "${TMPDIR:-/tmp}/lo_lipt_XXXXXX")"
+SOFFICE="${SOFFICE:-$(command -v soffice)}"; LOPROF="$(mktemp -d -t lo_lipt)"
 LIPT_FIG2_RESLAB=0 python3 figs_lipt.py   # figures (no value labels on the residents-denominator row of Fig. 2) -> $O/Figure_1.tif, Figure_2.tif
 python3 build_manuscript_lipt.py
 python3 build_supplement_lipt.py

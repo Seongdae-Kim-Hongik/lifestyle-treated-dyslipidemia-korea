@@ -1,5 +1,5 @@
 # _st_config.py - shared settings and variable labels.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, re, json, unicodedata
 import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
@@ -73,9 +73,9 @@ def load_config(TAG):
             key = re.sub(r"[^A-Za-z0-9_]+", "_", raw).strip("_").lower() or "var"
             if not re.fullmatch(r"[a-z][a-z0-9_]*", key): key = "var_" + key
             le = (H.loc[raw, "label_en"] if keycol and raw in H.index and "label_en" in H.columns else raw); lk = (H.loc[raw, "label_ko"] if keycol and raw in H.index and "label_ko" in H.columns else raw)
-            print(f"[config] 라벨표에 없는 변수 → 자동 키 {key}: {raw}")
+            print(f"[config] variable not in the label table -> automatic key {key}: {raw}")
         if raw != src and raw not in L.index and "label_en" in H.columns: le, lk = H.loc[raw, "label_en"], H.loc[raw, "label_ko"]
-        key = str(key); assert key not in used, f"내부 키 중복: {key} ({raw})"; used.add(key)
+        key = str(key); assert key not in used, f"duplicate internal key: {key} ({raw})"; used.add(key)
         ed = EDIR.get(raw) or (H.loc[raw, dircol] if (keycol and dircol and raw in H.index and pd.notna(H.loc[raw, dircol])) else "")
         vars_[raw] = dict(key=key, column=src, transform=tr, label_en=str(le), label_ko=str(lk), expected_direction=str(ed), role="forced" if raw in forced else ("negative" if raw in neg else ("candidate_sensitivity" if raw in sens_only else "candidate")))
     K = lambda raw: vars_[raw]["key"]

@@ -1,5 +1,5 @@
 # 07_basic_livelihood_official_lipt.py - replace the basic livelihood security rate by the official recipient-based rate (reference SQLite build).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, sqlite3, unicodedata
 import numpy as np, pandas as pd
 NFC = lambda s: unicodedata.normalize("NFC", s) if isinstance(s, str) else s

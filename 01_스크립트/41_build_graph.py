@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 41_build_graph.py - principal adjacency graph (INLA graph format) from the district boundary file.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 #  Rule (the same as the graph block of 81_fit_inla.R): queen contiguity, i.e. two districts are neighbours when their
 #  boundaries are within sqrt(machine epsilon) of each other; a district with no neighbour (island) is then linked, both
 #  ways, to the district with the nearest centroid. Districts are numbered in boundary-file order (229 districts, 593 links).

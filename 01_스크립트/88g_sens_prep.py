@@ -1,5 +1,5 @@
 # 88g_sens_prep.py - inputs for the sensitivity suite and comparison outcomes.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, json, numpy as np, pandas as pd
 TAG, VER = sys.argv[1], sys.argv[2]; NCO = [t for t in (sys.argv[3].split(",") if len(sys.argv) > 3 else []) if t and t != TAG]
 SUF = f"_{VER}" if VER else ""

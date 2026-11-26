@@ -43,7 +43,7 @@ AI_STATEMENT = "The author used Claude Opus 5.5 (Anthropic) and ChatGPT (GPT-6 A
 CONTRIB = ("Seongdae Kim: conceptualization, data curation, formal analysis, investigation, methodology, software, validation, visualization, "
            "writing (original draft) and writing (review and editing).")
 IRB1 = ("7002340-202511-HR-012", "4 November 2025"); IRB2 = ("7002340-202611-HR-040", "3 November 2026")
-REPO_PH = "https://github.com/Seongdae-Kim-Hongik/lifestyle-treated-dyslipidemia-korea"; ZEN_PH = "10.5281/zenodo.24558722"   # Code repository and concept DOI
+REPO_PH = "https://github.com/Seongdae-Kim-Hongik/lifestyle-treated-dyslipidemia-korea"; ZEN_PH = "10.5281/zenodo.24560215"   # Code repository and concept DOI
 STATEMENTS = [
     ("Ethical considerations", f"This study was approved by the Institutional Review Board of Hongik University (approval no. {IRB1[0]}, approved on {IRB1[1]}), and its continuing review was approved by the same board (approval no. {IRB2[0]}, approved on {IRB2[1]})."),
     ("Consent to participate", "The Institutional Review Board of Hongik University waived the requirement for informed consent because only published district-level aggregate statistics were used and no individual-level data were accessed."),
@@ -56,4 +56,3 @@ STATEMENTS = [
 ]
 assert [h for h, _ in STATEMENTS] == ["Ethical considerations", "Consent to participate", "Consent for publication", "Declaration of conflicting interest", "Funding statement", "Data availability"]
 assert not _re.search(r"(?i)\bexempt", " ".join(t for _, t in STATEMENTS) + ETHICS)
-OLD_TRACES = ("24281656", "24553593", "24281479", "24148551", "dyslipidemia-treatment-access-korea")

@@ -1,5 +1,5 @@
 # plus1_check_lipt.R - check for added constants in offsets and log transforms (log1p variants).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 suppressPackageStartupMessages({library(INLA);library(sf);library(jsonlite)})
 inla.setOption(num.threads="1:1")
 TAG<-"LIPT";VER<-"std3";OUTD<-file.path("..","04_분석",TAG);RES<-file.path(OUTD,paste0("results_",VER),"plus1_check");dir.create(RES,showWarnings=FALSE,recursive=TRUE)
@@ -8,7 +8,7 @@ DD<-read.csv(file.path(OUTD,sprintf("panel_%s_%s.csv",TAG,VER)),fileEncoding="UT
 G<-st_read(Sys.getenv("ST_SHP"),quiet=TRUE);G$region<-enc2utf8(G$region);g<-inla.read.graph(Sys.getenv("ST_GRAPH"));stopifnot(g$n==nrow(G))
 DD$area<-match(DD$fbd_region,G$region);DD$time<-DD$year-min(DD$year)+1;DD$yiid<-DD$time
 FORCED<-S$forced;HYP<-as.character(S$sets_after_vif$S1_narrative_full);MAIN<-unique(c(HYP,FORCED));V<-"im_specialists_per_100k"
-cat(sprintf("offset check: E min %.3f, E==E_std(+1 없음) 81 E=data[['E']]\n",min(DD$E)))
+cat(sprintf("offset check: E min %.3f, E==E_std (no +1) 81 E=data[['E']]\n",min(DD$E)))
 x<-expm1(DD$im_specialists_per_100k_raw);stopifnot(max(abs(log1p(x)-DD$im_specialists_per_100k_raw))<1e-12)
 cat(sprintf("im_specialists per100k: zero cells %d, positive min %.4f\n",sum(x==0),min(x[x>0])))
 fillz<-function(v){d<-data.frame(k=DD$key,y=DD$year,v=v);o<-order(d$k,d$y);d<-d[o,]

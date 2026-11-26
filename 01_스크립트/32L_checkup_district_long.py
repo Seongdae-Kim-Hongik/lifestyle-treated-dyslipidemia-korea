@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 32L_checkup_district_long.py - district screening attendees (N098) and existing-disease judgments (N105) by sex, long format.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 #  Input:  KOSIS tables DT_35007_N098 and DT_35007_N105 (orgId 350), 2011-2024, saved as <table>.csv in the NHIS source folder
 #          (see README, Pipeline step 1b). A missing table is downloaded year by year through the KOSIS Open API
 #          (own key in KOSIS_KEY); a table already on disk is used as it is.

@@ -6,8 +6,8 @@ authors:
     given-names: Seongdae
     affiliation: Hongik University
     orcid: "https://orcid.org/0000-0002-1525-0091"
-version: "1.0.1"
+version: "1.0.2"
 date-released: 2026-11-26
 license: MIT
 repository-code: "https://github.com/Seongdae-Kim-Hongik/lifestyle-treated-dyslipidemia-korea"
-doi: 10.5281/zenodo.24558722
+doi: 10.5281/zenodo.24560215

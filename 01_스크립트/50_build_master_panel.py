@@ -1,5 +1,5 @@
 # 50_build_master_panel.py - district-year master table from public statistics.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, re, sys, importlib.util, datetime
 import numpy as np, pandas as pd
 
@@ -304,7 +304,7 @@ def main():
     mk = pd.read_csv(os.path.join(PAN, "시군구_마스터키.csv"), dtype=str)
     mk = mk[mk.fbd_sido.notna()].drop_duplicates("key")
     master_keys = set(mk.key)
-    assert len(master_keys) == 229, f"마스터키 229개 아님: {len(master_keys)}"
+    assert len(master_keys) == 229, f"master key count is not 229: {len(master_keys)}"
     keyinfo = mk.set_index("key")[["fbd_region"]]
 
     log = dict(missing_files=[], level_filter={}, unmatched=[], special=[], overlap=[], sources={})
@@ -312,13 +312,13 @@ def main():
     for src in SOURCES:
         if all(not _exists(f) for f in src["files"]):
             if not src.get("optional"): log["missing_files"] += src["files"]
-            print(f"[skip] {src['name']}: 파일 없음"); continue
+            print(f"[skip] {src['name']}: file not found"); continue
         agg, meta = load_source(src, master_keys, log)
         if agg is None: continue
         agg = agg.rename(columns={c: src["prefix"] + c for c in meta["var_cols"]})
         agg = agg.rename(columns={"boundary_flag": f"_flag_{src['name']}"})
         aggs[src["name"]] = (agg, meta, src)
-        print(f"[ok] {src['name']}: 입력행 {meta['n_rows_in']} → 집계행 {len(agg)}, 변수 {len(meta['var_cols'])}, 합산그룹 {meta['n_multi']}")
+        print(f"[ok] {src['name']}: input rows {meta['n_rows_in']} -> aggregated rows {len(agg)}, variables {len(meta['var_cols'])}, merged groups {meta['n_multi']}")
 
     pop = pd.read_csv(FBD, usecols=["year", "sido", "sigungu", "population"], dtype={"sido": str, "sigungu": str}).drop_duplicates()
     pop["key"] = [make_key(a, b) for a, b in zip(pop.sido, pop.sigungu)]
@@ -340,7 +340,7 @@ def main():
     master = master[front + [c for c in master.columns if c not in front]]
     master = master.sort_values(["year", "key"]).reset_index(drop=True)
     assert len(master) == 229 * len(years) and master.key.nunique() == 229 and not master.duplicated(["year", "key"]).any(), \
-        f"마스터 격자 깨짐: {len(master)}행, 229×{len(years)} 기대"
+        f"master grid broken: {len(master)} rows, expected 229 x {len(years)}"
     correct_changwon_population(master)
     master.to_parquet(os.path.join(PAN, "MASTER_시군구_연도_wide.parquet"), index=False)
     master.to_csv(os.path.join(PAN, "MASTER_시군구_연도_wide.csv.gz"), index=False, encoding="utf-8-sig", compression="gzip")
@@ -368,19 +368,19 @@ def main():
     sp = pd.concat(log["special"], ignore_index=True) if log["special"] else pd.DataFrame()
 
     nY = int((vd.dependent == "Y").sum()); nN = int((vd.dependent == "N").sum())
-    L = [f"# MASTER 병합 점검 ({datetime.date.today()})", "",
-         f"- 마스터: {len(master):,}행 × {master.shape[1]:,}열, 시군구 {master.key.nunique()}개 × 연도 {years[0]}~{years[-1]}({len(years)}개), 완전 격자",
-         f"- 인구 분모(population): FBD 식중독최종.csv {int(pop.year.min())}~{int(pop.year.max())}, 마스터에 값 있는 행 {int(master.population.notna().sum()):,}" + (f" (FBD 키 미매칭: {pop_un})" if pop_un else ""),
-         f"- 변수 {len(vd)}개 = 종속변수 후보(Y) {nY} / 공변량(N) {nN}", ""]
-    if log["missing_files"]: L += ["## 없는 입력 파일(건너뜀)"] + [f"- {f}" for f in log["missing_files"]] + [""]
-    L += ["## 원천별 열 수·집계 요약", "", "| 원천 | 접두어 | 입력 파일 | 변수 수 | 합산가능 열 | 비율·지표 열 | 집계행 | 합산 그룹(key×year) |", "|---|---|---|---|---|---|---|---|"]
+    L = [f"# MASTER merge check ({datetime.date.today()})", "",
+         f"- Master: {len(master):,} rows x {master.shape[1]:,} columns, {master.key.nunique()} districts x years {years[0]}-{years[-1]} ({len(years)} years), complete grid",
+         f"- Population denominator (population): FBD source file {int(pop.year.min())}-{int(pop.year.max())}, master rows with a value {int(master.population.notna().sum()):,}" + (f" (FBD keys not matched: {pop_un})" if pop_un else ""),
+         f"- {len(vd)} variables = outcome candidates (Y) {nY} / covariates (N) {nN}", ""]
+    if log["missing_files"]: L += ["## Missing input files (skipped)"] + [f"- {f}" for f in log["missing_files"]] + [""]
+    L += ["## Columns and aggregation by source", "", "| Source | Prefix | Input files | Variables | Summable columns | Ratio/indicator columns | Aggregated rows | Merged groups (key x year) |", "|---|---|---|---|---|---|---|---|"]
     for name, (agg, meta, src) in aggs.items():
         L.append(f"| {src['label']} | {src['prefix']} | {', '.join(f for f in src['files'] if _exists(f))} | {len(meta['var_cols'])} | {len(meta['count_cols'])} | {len(meta['ratio_cols'])} | {len(agg):,} | {meta['n_multi']} |")
-    L += ["", "## 원천별 매칭된 시군구 수(연도별)", ""]
+    L += ["", "## Matched districts by source (by year)", ""]
     cov = pd.DataFrame({name: pd.Series(meta["match_by_year"]) for name, (agg, meta, src) in aggs.items()}).reindex(years).fillna(0).astype(int)
     L += ["| year | " + " | ".join(cov.columns) + " |", "|---|" + "---|" * len(cov.columns)]
     L += [f"| {y} | " + " | ".join(str(v) for v in cov.loc[y]) + " |" for y in cov.index]
-    L += ["", "## 연도 커버리지(원천×연도, 해당 원천 변수 중 하나라도 값 있는 시군구 수)", ""]
+    L += ["", "## Year coverage (source x year, districts with a value in any variable of the source)", ""]
     cov2 = {}
     for name, (agg, meta, src) in aggs.items():
         cols = [src["prefix"] + c for c in meta["var_cols"]]
@@ -389,51 +389,51 @@ def main():
     cov2 = pd.DataFrame(cov2).reindex(years).fillna(0).astype(int)
     L += ["| year | " + " | ".join(cov2.columns) + " |", "|---|" + "---|" * len(cov2.columns)]
     L += [f"| {y} | " + " | ".join(str(v) for v in cov2.loc[y]) + " |" for y in cov2.index]
-    L += ["", "## 미매칭 (sido, sigungu) — 버리지 않고 MASTER_병합_unmatched.csv 에도 저장(마스터에는 들어가지 않음)", ""]
+    L += ["", "## Unmatched (sido, sigungu): kept in MASTER_병합_unmatched.csv (not entered in the master)", ""]
     if len(um):
-        L += ["원천별 미매칭 행 수: " + ", ".join(f"{k} {int(v)}행({int(um[um.source==k].n_rows_with_values.sum())}행 값 있음)" for k, v in um.groupby("source").n_rows.sum().items()), ""]
+        L += ["Unmatched rows by source: " + ", ".join(f"{k} {int(v)} rows ({int(um[um.source==k].n_rows_with_values.sum())} rows with values)" for k, v in um.groupby("source").n_rows.sum().items()), ""]
     if len(um):
-        L += ["| 원천 | sido | sigungu | 연도 | 행 수 | 값 있는 행 |", "|---|---|---|---|---|---|"]
+        L += ["| Source | sido | sigungu | Years | Rows | Rows with values |", "|---|---|---|---|---|---|"]
         L += [f"| {r.source} | {r.sido} | {r.sigungu} | {r.years} | {r.n_rows} | {r.n_rows_with_values} |" for r in um.itertuples()]
-    else: L.append("- 없음")
-    L += ["", "## 합산·개명·표기정정 처리한 (sido, sigungu) 목록", "", "| 원천 | sido | sigungu | → key | 역할 | 플래그 | 연도 | 행 수 |", "|---|---|---|---|---|---|---|---|"]
+    else: L.append("- none")
+    L += ["", "## (sido, sigungu) merged, renamed or with corrected spelling", "", "| Source | sido | sigungu | -> key | Role | Flag | Years | Rows |", "|---|---|---|---|---|---|---|---|"]
     L += [f"| {r.source} | {r.sido} | {r.sigungu} | {r.key} | {r.role} | {r.flag} | {r.years} | {r.n_rows} |" for r in sp.itertuples()] if len(sp) else ["| - | | | | | | | |"]
-    L += ["", "## 경계 규칙 적용 건수(마스터 행 기준, boundary_flag)", ""]
+    L += ["", "## Boundary rules applied (master rows, boundary_flag)", ""]
     fc = master.boundary_flag.replace("", np.nan).dropna().str.split(";").explode().value_counts()
-    L += [f"- {k}: {v}행" for k, v in fc.items()] or ["- 없음"]
-    L += ["", "원천별 플래그 건수(집계행 기준):"] + [f"- {name}: {meta['flag_counts']}" for name, (agg, meta, src) in aggs.items()]
-    L += ["", "## 합산 때문에 결측 처리한 비율 셀 수(합산 그룹 행 × 비율 열, 원천별)"]
+    L += [f"- {k}: {v} rows" for k, v in fc.items()] or ["- none"]
+    L += ["", "Flag counts by source (aggregated rows):"] + [f"- {name}: {meta['flag_counts']}" for name, (agg, meta, src) in aggs.items()]
+    L += ["", "## Ratio cells set to missing because of merging (merged-group rows x ratio columns, by source)"]
     for name, (agg, meta, src) in aggs.items():
         if not meta["ratio_cols"] or not src["merge_counts"]: continue
         fl = agg[f"_flag_{name}"].fillna("")
         rc_ = [src["prefix"] + c for c in meta["ratio_cols"]]
         for f_ in ["창원통합", "하위구합산"]:
             sub_ = agg[fl.str.contains(f_)]
-            if len(sub_): L.append(f"- {name} / {f_}: {len(sub_)}행 × 비율 {len(rc_)}열, 결측 셀 {int(sub_[rc_].isna().sum().sum())}")
+            if len(sub_): L.append(f"- {name} / {f_}: {len(sub_)} rows x {len(rc_)} ratio columns, missing cells {int(sub_[rc_].isna().sum().sum())}")
     if log["level_filter"]:
-        L += ["", "## level 필터(시군구만 사용)"] + [f"- {f}: {a}행 → {b}행" for f, (a, b) in log["level_filter"].items()]
-    L += ["", "## 같은 key×year에 원천 행이 둘 이상이면서 둘 다 '정식' 행인 경우(옛 이름·새 이름 공존 등) — 값이 겹친 열 수"]
+        L += ["", "## level filter (district rows only)"] + [f"- {f}: {a} rows -> {b} rows" for f, (a, b) in log["level_filter"].items()]
+    L += ["", "## Same key x year with two or more source rows that are both regular rows (old and new names together, etc.): columns with overlapping values"]
     ov = pd.DataFrame(log["overlap"])
     if len(ov):
         ovs = ov.groupby(["source", "rows"]).agg(years=("year", lambda s: f"{s.min()}~{s.max()}"), n=("year", "size"), max_overlap_cols=("n_cols_overlap", "max"), sum_overlap=("n_cols_overlap", "sum")).reset_index()
-        L += ["", "| 원천 | 행 조합 | 연도 | 건수 | 겹친 열 최대 | 겹친 열 합 |", "|---|---|---|---|---|---|"]
+        L += ["", "| Source | Row combination | Years | Cases | Max overlapping columns | Sum of overlapping columns |", "|---|---|---|---|---|---|"]
         L += [f"| {r.source} | {r.rows} | {r.years} | {r.n} | {r.max_overlap_cols} | {r.sum_overlap} |" for r in ovs.itertuples()]
-        L += ["", "겹친 열 합이 0이면 값이 서로 보완적(한쪽만 값 있음)이라 합산해도 이중계상 없음. 0보다 크면 해당 열은 두 행 값을 더한 것이므로 확인 필요."]
-    else: L.append("- 없음")
-    L += ["", "## 처리 규칙 요약",
-          "- 지역 키: 40_region_crosswalk.make_key(군위군→대구시, 연기군→세종시, 인천 남구→미추홀구, 제주/서귀포) 뒤 RENAME(1:1 개명·표기 정정) → MERGE(폐지 지역 합산) → 하위 구 규칙(고양·성남·수원·안산·안양·용인·부천·청주·천안·전주·포항·창원·화성의 구).",
-          "- 합산 가능한 양(인원·일수·금액·건수·시설 수·면적·사망자 수·출생아 수)은 합, 비율·율·평균은 (1) 검진 파생비율은 합산 뒤 공식으로 재계산, (2) 창원통합은 결측, (3) 청원군·북제주군·남제주군 합산은 시 값 유지, (4) 하위구 합산은 결측.",
-          "- KCHS는 표본조사 추정치라 합산하지 않음: 청원군(2008~2013) 행은 쓰지 않고 청주시 값 유지, boundary_flag='청원군합산' 기록. 같은 시군구에 보건소 코드 행이 둘(제주시·서귀포시)이면 응답자수(N) 가중 평균으로 풀링(N 합, SE는 가중 제곱합의 제곱근), boundary_flag='보건소합산'. 시도명 변형 행(강원도/강원특별자치도 등)은 열이 보완적이라 그대로 합침.",
-          "- 같은 key×year에 시 행과 하위 구 행이 함께 있으면(암발생 등) 시 행만 쓰고 하위 구는 버림(boundary_flag='하위구제외'), 비율은 시 값 유지.",
-          "- 암발생(canc__)은 5년 시기 종료연도(2003·2008·2013·2018) 행에만 값이 있고 다른 연도는 결측. 연기군(~2013 시기)은 crosswalk대로 세종시 키에 들어감. 청원군(~2013)·남북제주군(~2008)은 발생자수 합산·발생률은 시 값, 마산시·진해시(~2013)는 창원시에 발생자수 합산·발생률 결측.",
-          "- e-지방지표(eloc__)는 같은 시군구가 시도명 변형(경기/경기도, 강원/강원도/강원특별자치도 등)으로 여러 행에 나뉘어 있어 make_key로 표준화한 뒤 같은 key×year를 열별 첫 비결측(정식 행 우선)으로 합침. 통합시 하위 구·소계·출장소·'(변동전)' 꼬리표 행은 합산하지 않고 미매칭으로만 보냄(단 '(변동전)' 꼬리표는 떼고 1:1 개명 지역 여주군·당진군·연기군→세종시·광주군·양주군·포천군·화성군·군위군·인천 남구·창원시·통합청주시는 기존 경계 규칙으로 매핑; 합산이 필요한 청원군·마산시·진해시·북제주군·남제주군은 지표를 합산할 수 없어 미매칭으로 보냄 — 청원군 값을 청주시로 쓰면 2004~2014에 군 단위 값 336셀이 섞여서 제외). '통합청주시'→청주시. 연도 범위(1992~2042, 추계인구 포함)가 마스터 격자의 연도 수를 늘림.",
-          "- 사망원인·인구동향은 level=='시군구' 행만 사용(하위구 제외), 2010~ '통합창원시'→창원시, 2014~ 청주시는 원천이 이미 통합값.",
-          "- 같은 key×year에 옛 이름·새 이름 행이 공존하면(여주군/여주시 등) 열별로 값이 한쪽에만 있는지 위 표로 점검.",
-          "- 종속변수 후보(Y): 사망 전부, NHIS 주요질환, 검진 판정·유질환자·질환의심·대사증후군·인지기능, KCHS 당뇨·고혈압 진단경험률·우울·비만·저작불편(CR/SR). 그 외는 N."]
+        L += ["", "If the sum of overlapping columns is 0, the values are complementary (only one row has a value) and merging does not double count. If it is above 0, those columns add the values of both rows and need checking."]
+    else: L.append("- none")
+    L += ["", "## Summary of processing rules",
+          "- Region key: 40_region_crosswalk.make_key (Gunwi-gun -> Daegu, Yeongi-gun -> Sejong, Incheon Nam-gu -> Michuhol-gu, Jeju/Seogwipo), then RENAME (1:1 renaming and spelling correction) -> MERGE (abolished areas merged) -> sub-district rule (gu of Goyang, Seongnam, Suwon, Ansan, Anyang, Yongin, Bucheon, Cheongju, Cheonan, Jeonju, Pohang, Changwon and Hwaseong).",
+          "- Summable quantities (persons, days, amounts, counts, facilities, area, deaths, births) are summed; for ratios, rates and means, (1) derived health-screening ratios are recomputed from their formula after summing, (2) the Changwon merger is set to missing, (3) merges of Cheongwon-gun, Bukjeju-gun and Namjeju-gun keep the city value, (4) sub-district merges are set to missing.",
+          "- KCHS values are survey estimates and are not summed: Cheongwon-gun rows (2008-2013) are not used and the Cheongju value is kept, with the Cheongwon boundary_flag recorded. When a district has two health-centre code rows (Jeju-si, Seogwipo-si), they are pooled by a respondent-weighted (N) mean (N summed, SE as the square root of the weighted sum of squares), with the health-centre boundary_flag. Rows with variant province names (Gangwon-do / Gangwon State, etc.) have complementary columns and are combined as they are.",
+          "- When the same key x year has both a city row and sub-district rows (cancer incidence, etc.), only the city row is used and the sub-districts are dropped (sub-district exclusion boundary_flag); ratios keep the city value.",
+          "- Cancer incidence (canc__) has values only in the end years of the 5-year periods (2003, 2008, 2013, 2018); other years are missing. Yeongi-gun (periods to 2013) enters the Sejong key as in the crosswalk. Cheongwon-gun (to 2013) and Bukjeju/Namjeju-gun (to 2008): case counts summed and rates kept at the city value; Masan-si and Jinhae-si (to 2013): case counts summed into Changwon-si and rates missing.",
+          "- In e-local indicators (eloc__) the same district is split over several rows by variant province names (Gyeonggi/Gyeonggi-do, Gangwon/Gangwon-do/Gangwon State, etc.), so keys are standardized with make_key and the same key x year is combined column by column with the first non-missing value (regular rows first). Sub-districts of merged cities, subtotals, branch offices and rows tagged 'before change' are not summed and are only sent to the unmatched list (the 'before change' tag is removed, and the 1:1 renamed areas Yeoju-gun, Dangjin-gun, Yeongi-gun -> Sejong, Gwangju-gun, Yangju-gun, Pocheon-gun, Hwaseong-gun, Gunwi-gun, Incheon Nam-gu, Changwon-si and the merged Cheongju-si are mapped by the existing boundary rules; Cheongwon-gun, Masan-si, Jinhae-si, Bukjeju-gun and Namjeju-gun, which would need summing, are sent to the unmatched list because indicators cannot be summed; using the Cheongwon-gun value for Cheongju-si would mix 336 county-level cells in 2004-2014, so it is excluded). Merged Cheongju-si -> Cheongju-si. The year range (1992-2042, including projected population) increases the number of years in the master grid.",
+          "- Causes of death and population trends use district-level rows only (sub-districts excluded); from 2010 the merged Changwon-si -> Changwon-si, and from 2014 Cheongju-si is already merged in the source.",
+          "- When rows with old and new names coexist for the same key x year (Yeoju-gun/Yeoju-si, etc.), the table above checks that each column has a value in only one row.",
+          "- Outcome candidates (Y): all deaths, NHIS major diseases, health-screening judgments (existing disease, suspected disease, metabolic syndrome, cognitive function), KCHS diabetes and hypertension diagnosis rates, depression, obesity and chewing difficulty (CR/SR). All others are N."]
     open(os.path.join(PAN, "MASTER_병합_점검.md"), "w", encoding="utf-8").write("\n".join(L))
 
-    print(f"\n마스터 {len(master):,}행 × {master.shape[1]:,}열 | 종속변수 후보(Y) {nY} / 공변량(N) {nN}")
-    print("미매칭:", len(um), "건 →", um[["source", "sido", "sigungu"]].astype(str).agg("/".join, axis=1).tolist())
+    print(f"\nmaster {len(master):,} rows x {master.shape[1]:,} columns | outcome candidates (Y) {nY} / covariates (N) {nN}")
+    print("unmatched:", len(um), "cases ->", um[["source", "sido", "sigungu"]].astype(str).agg("/".join, axis=1).tolist())
     return master, vd
 
 

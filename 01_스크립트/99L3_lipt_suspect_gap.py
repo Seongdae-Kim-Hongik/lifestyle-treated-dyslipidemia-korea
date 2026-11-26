@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 99L3_lipt_suspect_gap.py - treated versus suspected dyslipidemia.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, json, unicodedata, numpy as np, pandas as pd
 from scipy.stats import spearmanr
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE); AN = os.path.join(ROOT, "04_분석"); PAN = os.path.join(ROOT, "02_패널")

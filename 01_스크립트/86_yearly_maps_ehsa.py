@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 86_yearly_maps_ehsa.py - yearly maps and emerging hot spot analysis.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, json, math, unicodedata
 import numpy as np, pandas as pd, geopandas as gpd
 from scipy.stats import kendalltau, rankdata

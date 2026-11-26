@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 80_build_disease_panel_v.py - analytic district-year panel for one outcome tag and version.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import sys, os, json, unicodedata
 import numpy as np, pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,15 +18,15 @@ _EXT = json.load(open(os.path.join(OUT, f"sets_{TAG}{SUF}.json"), encoding="utf-
 for _nc, (_f, _c) in _EXT.items():
     _X = pd.read_csv(os.path.join(ROOT, "02_패널", _f), encoding="utf-8-sig")[["year", "fbd_region", _c]].rename(columns={_c: NFC(_nc)}); _X["fbd_region"] = _X.fbd_region.map(NFC)
     _n = len(M); M["fbd_region"] = M.fbd_region.map(NFC); M = M.merge(_X, on=["year", "fbd_region"], how="left", validate="many_to_one"); assert len(M) == _n
-    print(f"[80v] 외부 열 병합 {NFC(_nc)} ← 02_패널/{_f}:{_c} (2011-24 비결측 {int(M.loc[(M.year >= 2011) & (M.year <= 2024), NFC(_nc)].notna().sum())}행)")
+    print(f"[80v] external column merged {NFC(_nc)} <- 02_패널/{_f}:{_c} (non-missing in 2011-24: {int(M.loc[(M.year >= 2011) & (M.year <= 2024), NFC(_nc)].notna().sum())} rows)")
 for _o in (json.load(open(os.path.join(OUT, f"sets_{TAG}{SUF}.json"), encoding="utf-8")).get("population_override") or []):
     _m = (M.year == int(_o["year"])) & (M.fbd_region.map(NFC) == NFC(_o["fbd_region"])); assert _m.sum() == 1, _o
-    print(f"[80v] 인구 교정 {_o['year']} {_o['fbd_region']}: {M.loc[_m, 'population'].iloc[0]:,.0f} → {_o['population']:,} ({_o.get('source','')})"); M.loc[_m, "population"] = float(_o["population"])
-OUTC = C["outcome_column"]; assert OUTC in M.columns, f"outcome 없음: {OUTC}"
-for k in ALLV: assert V[k]["column"] in M.columns, f"마스터에 없는 열: {V[k]['column']} ({k})"
+    print(f"[80v] population corrected {_o['year']} {_o['fbd_region']}: {M.loc[_m, 'population'].iloc[0]:,.0f} → {_o['population']:,} ({_o.get('source','')})"); M.loc[_m, "population"] = float(_o["population"])
+OUTC = C["outcome_column"]; assert OUTC in M.columns, f"outcome column not found: {OUTC}"
+for k in ALLV: assert V[k]["column"] in M.columns, f"column not in master: {V[k]['column']} ({k})"
 D = M[(M.year >= Y0) & (M.year <= Y1)].sort_values(["key", "year"]).reset_index(drop=True)
-assert D.groupby("year").key.nunique().nunique() == 1, "연도별 시군구 수 불일치"
-assert OFFC in M.columns, f"offset 열 없음: {OFFC}"
+assert D.groupby("year").key.nunique().nunique() == 1, "number of districts differs between years"
+assert OFFC in M.columns, f"offset column not found: {OFFC}"
 D["offset"] = D[OFFC].astype(float); n_off_fb = 0; n_off_fb2 = 0
 if OFFC != "population" and D["offset"].isna().any():
     if C.get("offset_fallback") == "population_by_sex_ratio":
@@ -37,13 +37,13 @@ if OFFC != "population" and D["offset"].isna().any():
         m_ = D["offset"].isna(); n_off_fb2 = int(m_.sum()); D.loc[m_, "offset"] = (D.population * D.year.map(ratio))[m_]
 drop_mask = D[OUTC].isna() | D["offset"].isna() | (D["offset"] <= 0) | D.year.isin(EXCL)
 DROPPED = D.loc[drop_mask, ["year", "key"]]; D = D[~drop_mask].reset_index(drop=True)
-YOBS = sorted(D.year.unique()); assert len(YOBS) >= 3, "분석 가능한 연도 부족"
-for _nc in _EXT: assert D[NFC(_nc)].notna().all(), f"외부 열 결측: {_nc} {int(D[NFC(_nc)].isna().sum())}행"
+YOBS = sorted(D.year.unique()); assert len(YOBS) >= 3, "too few analysable years"
+for _nc in _EXT: assert D[NFC(_nc)].notna().all(), f"external column missing: {_nc} {int(D[NFC(_nc)].isna().sum())} rows"
 
 import geopandas as gpd
 G = gpd.read_file(SHP); G["region"] = G["region"].map(NFC); D["fbd_region"] = D["fbd_region"].map(NFC)
 area = G.set_index("region").geometry.area
-assert set(D.fbd_region.unique()) <= set(area.index), "지도에 없는 fbd_region: " + str(set(D.fbd_region.unique()) - set(area.index))
+assert set(D.fbd_region.unique()) <= set(area.index), "fbd_region not in map: " + str(set(D.fbd_region.unique()) - set(area.index))
 UNOBS = sorted(set(area.index) - set(D.fbd_region.unique()))
 D["area_m2"] = D.fbd_region.map(area).values
 
@@ -54,32 +54,32 @@ nat = out.groupby("year").agg(cases=("cases", "sum"), off=("offset", "sum"), pop
 out["E"] = out.offset * out.year.map(nat.rate); assert abs(out.E.sum() - out.cases.sum()) < 1e-6 * out.cases.sum()
 EXTC = C.get("offset_E_column"); EXTS = C.get("offset_E_sensitivity_column"); EXT_INFO = {}
 if EXTC:
-    assert not OFFS, "offset_sensitivity 와 offset_E_sensitivity_column 동시 지정 불가"
-    ef = os.path.join(ROOT, "02_패널", C.get("offset_E_file") or f"{TAG}_Estd.csv"); assert os.path.exists(ef), f"외부 E 파일 없음: {ef}"
+    assert not OFFS, "offset_sensitivity and offset_E_sensitivity_column cannot both be set"
+    ef = os.path.join(ROOT, "02_패널", C.get("offset_E_file") or f"{TAG}_Estd.csv"); assert os.path.exists(ef), f"external E file not found: {ef}"
     XE = pd.read_csv(ef, encoding="utf-8-sig"); XE["fbd_region"] = XE.fbd_region.map(NFC)
-    cols = [EXTC] + ([EXTS] if EXTS else []); assert all(c in XE.columns for c in cols), f"외부 E 열 없음: {cols}"
+    cols = [EXTC] + ([EXTS] if EXTS else []); assert all(c in XE.columns for c in cols), f"external E columns not found: {cols}"
     mg = out[["year", "fbd_region"]].merge(XE[["year", "fbd_region"] + cols], on=["year", "fbd_region"], how="left", validate="one_to_one")
-    assert mg[cols].notna().all().all() and (mg[cols] > 0).all().all(), f"외부 E 결측/0: {int(mg[cols].isna().any(axis=1).sum())}행"
+    assert mg[cols].notna().all().all() and (mg[cols] > 0).all().all(), f"external E missing or 0: {int(mg[cols].isna().any(axis=1).sum())} rows"
     out["E_crude"] = out.E
     rs = lambda v: v * out.groupby("year").cases.transform("sum") / v.groupby(out.year).transform("sum")
     out["E"] = rs(pd.Series(mg[EXTC].values, index=out.index)).values; assert abs(out.E.sum() - out.cases.sum()) < 1e-6 * out.cases.sum()
     if EXTS: out["E_sens"] = rs(pd.Series(mg[EXTS].values, index=out.index)).values; OFFS = C.get("offset_E_label_sensitivity") or EXTS
     EXT_INFO = dict(offset_E_column=EXTC, offset_E_file=os.path.basename(ef), offset_E_sensitivity_column=EXTS, offset_E_label=C.get("offset_E_label") or EXTC,
                     E_over_Ecrude=dict((k, round(float(v), 4)) for k, v in (out.E / out.E_crude).describe()[["min", "50%", "max"]].items()))
-    print(f"[80] 외부 E 사용: {EXTC} ({os.path.basename(ef)}); crude E → E_crude 보존; 민감도 E_sens = {EXTS}; E/E_crude {EXT_INFO['E_over_Ecrude']}")
+    print(f"[80] external E used: {EXTC} ({os.path.basename(ef)}); crude E kept as E_crude; sensitivity E_sens = {EXTS}; E/E_crude {EXT_INFO['E_over_Ecrude']}")
 out["SIR"] = out.cases / out.E
 if OFFS and not EXTC:
     assert OFFS in M.columns or OFFS == "population"; os_ = D[OFFS].astype(float) if OFFS != "population" else D.population.astype(float)
-    assert os_.notna().all() and (os_ > 0).all(), f"offset_sensitivity {OFFS} 결측"
+    assert os_.notna().all() and (os_ > 0).all(), f"offset_sensitivity {OFFS} missing"
     ns = out.assign(o=os_.values).groupby("year").agg(c=("cases", "sum"), o=("o", "sum")); out["E_sens"] = os_.values * out.year.map(ns.c / ns.o)
 W = {}
 for wn, (a, b) in RU["windows"].items():
     yy = [y for y in YOBS if a <= y <= b]
-    if not yy: print(f"[80] 창 {wn} 에 관측 연도 없음 → 제외"); continue
+    if not yy: print(f"[80] window {wn} has no observed years -> excluded"); continue
     nm = f"{wn.split('_')[0]}_{min(yy)}-{str(max(yy))[2:]}" if (min(yy) != a or max(yy) != b) else wn; W[nm] = [int(min(yy)), int(max(yy))]
 out["window"] = ""
 for wn, (a, b) in W.items(): out.loc[(out.year >= a) & (out.year <= b), "window"] = wn
-assert (out.window != "").all(), "창에 속하지 않는 연도 존재"
+assert (out.window != "").all(), "some years belong to no window"
 out["post"] = (out.year >= RU["covid_post_from"]).astype(int)
 
 def transform(raw, tr, pop, area):
@@ -102,7 +102,7 @@ for k in ALLV:
     n_interp = int(tmp.x.isna().sum() - tmp.x1.isna().sum())
     tmp["x2"] = tmp.x1.fillna(tmp.groupby("key")["x1"].transform("mean")); n_sgg = int(tmp.x1.isna().sum() - tmp.x2.isna().sum())
     tmp["x3"] = tmp.x2.fillna(tmp.groupby("year")["x2"].transform("mean")); n_year = int(tmp.x2.isna().sum() - tmp.x3.isna().sum())
-    assert tmp.x3.notna().all(), f"{k}: 대치 후에도 결측"
+    assert tmp.x3.notna().all(), f"{k}: still missing after imputation"
     out[k + "_raw"] = tmp.x3.values; mu, sd = float(tmp.x3.mean()), float(tmp.x3.std(ddof=0)); assert sd > 0, f"{k}: SD=0"
     out[k] = (tmp.x3.values - mu) / sd
     yrs = tmp[tmp.x.notna()].year
@@ -129,7 +129,7 @@ vt0 = vif_table(FORCED + CAND + SENSV); vt_final = pd.concat([vif_table(keep), v
 META["vif_initial"] = META.variable.map(vt0).round(2); META["vif_final"] = META.variable.map(vt_final).round(2)
 META["vif_dropped"] = META.variable.isin([d for d, _ in dropped]); META["vif_at_drop"] = META.variable.map(dict(dropped)).round(2)
 META["vif_over_threshold_retained"] = (RU["vif_action"] == "report") & (META.vif_final > TH)
-if (vt_final[FORCED] > TH).any(): print("★경고: 강제통제 VIF>임계 잔존:", vt_final[FORCED][vt_final[FORCED] > TH].round(1).to_dict())
+if (vt_final[FORCED] > TH).any(): print("WARNING: forced-control VIF above threshold remains:", vt_final[FORCED][vt_final[FORCED] > TH].round(1).to_dict())
 
 out.to_csv(os.path.join(OUT, f"panel_{TAG}{SUF}.csv"), index=False, encoding="utf-8-sig")
 META.to_csv(os.path.join(OUT, f"panel_META_{TAG}{SUF}.csv"), index=False, encoding="utf-8-sig")

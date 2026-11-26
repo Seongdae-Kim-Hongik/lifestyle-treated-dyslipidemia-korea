@@ -9,14 +9,14 @@ from docx.shared import Pt, Cm
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
-from docx_engine import JKMS
+from docx_engine import DocxEngine
 from american import amer
 import content_manuscript_lipt as C
 SOFFICE = os.environ.get("SOFFICE") or shutil.which("soffice") or shutil.which("libreoffice")
 HERE = os.path.dirname(os.path.abspath(__file__)); MS = os.path.dirname(HERE); OUT = os.environ.get("LIPT_OUT") or os.path.join(MS, "out"); os.makedirs(OUT, exist_ok=True); SUF = os.environ.get("LIPT_SUFFIX", "")
 N = C.N; REFS = json.load(open(os.path.join(HERE, "refs_lipt.json"), encoding="utf-8"))
 DRAFT = os.environ.get("LIPT_DRAFT") or os.path.join(MS, "draft", "03_manuscript.md")
-TITLE = C.TITLE; RUNNING = C.RUNNING; ORCID = "0000-0002-1525-0091"; PHONE = "+82-2-320-1114"; EMAIL = "kimsd@hongik.ac.kr"
+TITLE = C.TITLE; RUNNING = C.RUNNING; ORCID = "0000-0002-1525-0091"; PHONE = os.environ.get("LIPT_PHONE", ""); EMAIL = os.environ.get("LIPT_EMAIL", "")   # contact details are supplied at build time
 AUTHOR = "Seongdae Kim, PhD"; SURNAME = "Kim"
 AFFIL = "Department of Biohealth Convergence Open Sharing System, Hongik University, Seoul, Korea"
 ADDRESS = "Department of Biohealth Convergence Open Sharing System, Hongik University, 94 Wausan-ro, Mapo-gu, Seoul 04066, Korea"
@@ -73,7 +73,7 @@ def ref(k):
     t = TFIX.get(k, r["title"].rstrip(".")); t = t + ("" if t.endswith(("?", "!")) else ".")
     return f"{a}. {t} {r['journal']}. {r['year']};{r['vol']}:{r['pages']}."
 
-class TX(JKMS):
+class TX(DocxEngine):
     raw = False
     def __init__(self, cite="sup", lines=True, sz=SZ, header=True):
         super().__init__(cite); self.sz = sz; self._fsz = None

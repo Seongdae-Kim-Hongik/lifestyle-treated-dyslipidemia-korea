@@ -13,7 +13,7 @@ from docx.oxml import OxmlElement
 
 FONT="Times New Roman"
 
-class JKMS:
+class DocxEngine:
     def __init__(self,cite="sup"):
         self.cite=cite   # "sup" = superscript numbers, "bracket" = [1-3]
         self.doc=Document(); d=self.doc

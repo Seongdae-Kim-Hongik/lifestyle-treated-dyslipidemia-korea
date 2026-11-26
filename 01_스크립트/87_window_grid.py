@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 87_window_grid.py - window grid figure.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, sys, unicodedata
 import numpy as np, pandas as pd
 import matplotlib as mpl; mpl.use("Agg"); import matplotlib.pyplot as plt

@@ -1,6 +1,24 @@
 # sanitize_docx.py: removes python-docx fingerprints: default creation date and revision, app.xml placeholders (AppVersion, TotalTime, Words, Pages),
 #  customXml/item1.xml and itemProps, docProps/thumbnail.jpeg, keepNext/keepLines/pageBreakBefore in all word/*.xml. creator/lastModifiedBy = author (empty for anonymized review files). Modification times offset by a few minutes per file.
 import os, re, sys, zipfile, shutil, subprocess, datetime, random
+PPR_ORDER = ["pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr", "widowControl", "numPr", "suppressLineNumbers", "pBdr", "shd", "tabs",
+             "suppressAutoHyphens", "kinsoku", "wordWrap", "overflowPunct", "topLinePunct", "autoSpaceDE", "autoSpaceDN", "bidi", "adjustRightInd", "snapToGrid",
+             "spacing", "ind", "contextualSpacing", "mirrorIndents", "suppressOverlap", "jc", "textDirection", "textAlignment", "textboxTightWrap", "outlineLvl",
+             "divId", "cnfStyle", "rPr", "sectPr", "pPrChange"]   # child order of w:pPr in the OOXML schema (CT_PPr)
+def order_ppr(xml):
+    """Reorder the children of every w:pPr into schema order; returns the new XML string."""
+    from lxml import etree
+    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    root = etree.fromstring(xml.encode("utf-8"))
+    rank = {W + k: i for i, k in enumerate(PPR_ORDER)}
+    for ppr in root.iter(W + "pPr"):
+        kids = list(ppr)
+        if len(kids) < 2: continue
+        srt = sorted(kids, key=lambda e: rank.get(e.tag, len(PPR_ORDER)))
+        if srt != kids:
+            for e in kids: ppr.remove(e)
+            for e in srt: ppr.append(e)
+    return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True).decode("utf-8")
 def sanitize(path, minutes_ago=0, anon=None):
     if anon is None: anon = bool(re.search(r"(Manuscript|Supporting_Information|Supplementary_Material|Supplementary_Data|STROBE|Highlights)", os.path.basename(path)))   # Anonymized review files: author metadata cleared
     who = "" if anon else "Seongdae Kim"
@@ -28,6 +46,7 @@ def sanitize(path, minutes_ago=0, anon=None):
             if n.startswith("word/") and n.endswith(".xml"):
                 s = re.sub(r"<w:keepNext(?:\s+w:val=\"[^\"]*\")?\s*/>|<w:keepLines(?:\s+w:val=\"[^\"]*\")?\s*/>", "", s)
                 s = re.sub(r"<w:pageBreakBefore(?:\s+w:val=\"[^\"]*\")?\s*/>", "", s)
+            if n in ("word/document.xml", "word/styles.xml"): s = order_ppr(s)   # schema order of paragraph properties
             if n.startswith("word/") and n.endswith(".xml"):   # No sz/space/color attributes on nil borders (rendering pitfall)
                 s = re.sub(r'(<w:(?:top|left|bottom|right|insideH|insideV|start|end) w:val="nil")(?: w:sz="[^"]*"| w:space="[^"]*"| w:color="[^"]*")+', r"\1", s)
             if n == "word/styles.xml":   # Heading theme colours (1F4D78, 4F81BD and other blues) -> black

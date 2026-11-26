@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 99L2_build_Estd3_lipt.py - district counts and sex-by-age standardized expected numbers.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 import os, io, sys, json, importlib.util, unicodedata, sqlite3
 import numpy as np, pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE); AN = os.path.join(ROOT, "04_분석"); PAN = os.path.join(ROOT, "02_패널")
@@ -12,7 +12,7 @@ NFC = lambda s: unicodedata.normalize("NFC", str(s))
 TAG = "LIPT"; YEARS = list(range(2011, 2025))
 BANDS = ["0-19"] + [f"{lo}-{lo+4}" for lo in range(20, 85, 5)] + ["85+"]
 SEXES = ["남자", "여자"]; OUTS = {"": "00304"}
-assert os.environ.get("ST_FBDZIP"), "ST_FBDZIP(창원 2023 교정 인구 폴더)를 지정"
+assert os.environ.get("ST_FBDZIP"), "set ST_FBDZIP (folder with the corrected 2023 Changwon population)"
 def nb_band(a):
     a = str(a).replace(" ", "")
     if a == "19세이하": return "0-19"
@@ -32,7 +32,7 @@ for suf, code in OUTS.items():
     NUM[suf] = b[b.band.notna() & b.sex.isin(SEXES)].set_index(["year", "sex", "band"]).value.unstack()[BANDS].fillna(0)
     for s in SEXES: assert (abs(NUM[suf].xs(s, level="sex").sum(1) - bt.xs(s, level="sex")) <= 1).all(), (suf, s)
     RATE[suf] = NUM[suf] / EX
-print("[99L2] 전국 유질환자 비율(%, 성 합) 연도별:", (100 * NUM[""].groupby(level="year").sum().sum(1) / EX.groupby(level="year").sum().sum(1)).round(2).to_dict())
+print("[99L2] national share with existing disease (%, both sexes) by year:", (100 * NUM[""].groupby(level="year").sum().sum(1) / EX.groupby(level="year").sum().sum(1)).round(2).to_dict())
 # District-year skeleton (229 districts x 2011-2024, ordered by key and year) from the reference dataset (ST_REF_SQLITE, read-only).
 DB = os.environ["ST_REF_SQLITE"]; con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
 base = pd.read_sql("select year, key, fbd_region from region_year where year between 2011 and 2024", con); base["fbd_region"] = base.fbd_region.map(NFC); base["key"] = base.key.map(NFC)
@@ -87,19 +87,19 @@ S = SX.reindex(k); ok = S.notna().all(axis=1) & (S[("exam", "남자")] > 0) & (S
 ok = ok & ~base[base.year.isin(YEARS)].reset_index(drop=True).fbd_region.eq(NFC("세종시세종시")).values
 P = base[base.year.isin(YEARS)].reset_index(drop=True)[ok.values].reset_index(drop=True); S = S[ok.values]
 assert P.groupby("fbd_region").year.nunique().eq(len(YEARS)).all() and P.fbd_region.nunique() == 228
-print(f"[99L2] 시군구-연도 {len(k)} 중 관측 {len(P)}; 제외 {sorted(set(map(tuple, base[base.year.isin(YEARS)].reset_index(drop=True)[~ok.values][['year','fbd_region']].values.tolist())))[:12]}")
+print(f"[99L2] district-years {len(k)}, observed {len(P)}; excluded {sorted(set(map(tuple, base[base.year.isin(YEARS)].reset_index(drop=True)[~ok.values][['year','fbd_region']].values.tolist())))[:12]}")
 P["examinees"] = (S[("exam", "남자")] + S[("exam", "여자")]).values
 for suf in OUTS: P["cases" + suf] = (S[("c" + suf, "남자")] + S[("c" + suf, "여자")]).values
 MA = pd.read_parquet(os.path.join(PAN, "MASTER_시군구_연도_wide.parquet"), columns=["year", "fbd_region", "chk__유질환자_이상지질혈증"])
 MA["fbd_region"] = MA.fbd_region.map(NFC)
 c = P.merge(MA, on=["year", "fbd_region"], how="left", validate="one_to_one")
-dd = (c["cases"] - c["chk__유질환자_이상지질혈증"]).abs(); print(f"[99L2] MASTER 검산: 겹침 {int(dd.notna().sum())}칸 최대차 {dd.max():.0f}, MASTER 결측(원표 합으로 채움) {int(c['chk__유질환자_이상지질혈증'].isna().sum())}칸 {c.loc[c['chk__유질환자_이상지질혈증'].isna(), ['fbd_region','year']].values.tolist()}"); assert dd.max() <= 2
+dd = (c["cases"] - c["chk__유질환자_이상지질혈증"]).abs(); print(f"[99L2] MASTER check: {int(dd.notna().sum())} overlapping cells, max difference {dd.max():.0f}, missing in MASTER (filled from source-table sums) {int(c['chk__유질환자_이상지질혈증'].isna().sum())} cells {c.loc[c['chk__유질환자_이상지질혈증'].isna(), ['fbd_region','year']].values.tolist()}"); assert dd.max() <= 2
 SQ = pd.read_sql('select year, fbd_region, "chk__유질환자_이상지질혈증" as sq from region_year where year between 2011 and 2024', con); SQ["fbd_region"] = SQ.fbd_region.map(NFC)
 c = P.merge(SQ, on=["year", "fbd_region"], how="left", validate="one_to_one"); dd = (c.cases - c.sq).abs()
-print(f"[99L2] 기준 SQLite 검산: 겹침 {int(dd.notna().sum())}칸 최대차 {dd.max():.0f}, SQLite 빈칸 {int(c.sq.isna().sum())}칸"); assert dd.max() <= 2
+print(f"[99L2] reference SQLite check: {int(dd.notna().sum())} overlapping cells, max difference {dd.max():.0f}, empty in SQLite {int(c.sq.isna().sum())} cells"); assert dd.max() <= 2
 nat_ex = EX.groupby(level="year").sum().sum(1); nat_c = NUM[""].groupby(level="year").sum().sum(1)
-print("[99L2] 시군구 합/전국 수검자:", (P.groupby("year").examinees.sum() / nat_ex).round(3).to_dict())
-print("[99L2] 시군구 합/전국 의심:", (P.groupby("year").cases.sum() / nat_c).round(3).to_dict())
+print("[99L2] district sum / national attendees:", (P.groupby("year").examinees.sum() / nat_ex).round(3).to_dict())
+print("[99L2] district sum / national cases:", (P.groupby("year").cases.sum() / nat_c).round(3).to_dict())
 cs = {suf: P.groupby("year")["cases" + suf].transform("sum").values for suf in OUTS}
 rsc = lambda e, suf: e * cs[suf] / pd.Series(e).groupby(P.year.values).transform("sum").values
 E = {suf: np.zeros(len(P)) for suf in OUTS}; EP = {suf: np.zeros(len(P)) for suf in OUTS}; EXA = 0; scs = []
@@ -128,6 +128,6 @@ P["SIR_pop"] = P.cases / P.E_pop; P["SIR_crude"] = P.cases / P.E_crude
 cols = ["year", "fbd_region", "examinees", "cases", "E_std", "E_std_age", "E_pop", "E_crude", "pop80_share_raw", "uptake20", "SIR_std", "SIR_pop", "SIR_crude"]
 fp = os.path.join(PAN, f"{TAG}_Estd3.csv"); P[cols].to_csv(fp, index=False, encoding="utf-8-sig")
 sc_all = np.concatenate(scs); r = P.E_std / P.E_crude
-print(f"[99L2] {fp}: 행 {len(P)}, 연도 {P.year.min()}-{P.year.max()}, 시군구 {P.fbd_region.nunique()}, 의심 합 {int(P.cases.sum()):,}, 수검자 합 {int(P.examinees.sum()):,}")
+print(f"[99L2] {fp}: rows {len(P)}, years {P.year.min()}-{P.year.max()}, districts {P.fbd_region.nunique()}, sum of cases {int(P.cases.sum()):,}, sum of attendees {int(P.examinees.sum()):,}")
 print(f"[99L2] E_std/E_crude {r.min():.3f}~{r.max():.3f} · E_pop/E_std {(P.E_pop/P.E_std).min():.3f}~{(P.E_pop/P.E_std).max():.3f} · Spearman(SIR_std,SIR_pop) {P.SIR_std.corr(P.SIR_pop, method='spearman'):.3f} · Spearman(SIR_std,SIR_crude) {P.SIR_std.corr(P.SIR_crude, method='spearman'):.3f}")
-print(f"[99L2] 재척도 배수 {sc_all.min():.3f}~{sc_all.max():.3f} (P5 {np.quantile(sc_all,.05):.3f}, P95 {np.quantile(sc_all,.95):.3f}) · 수검률(수검자/20+ 인구) {P.uptake20.min():.3f}~{P.uptake20.max():.3f}")
+print(f"[99L2] rescaling factor {sc_all.min():.3f}~{sc_all.max():.3f} (P5 {np.quantile(sc_all,.05):.3f}, P95 {np.quantile(sc_all,.95):.3f}); uptake (attendees / population 20+) {P.uptake20.min():.3f}~{P.uptake20.max():.3f}")

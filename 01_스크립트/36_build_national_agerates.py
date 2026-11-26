@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 36_build_national_agerates.py - shared helpers for national age-specific rates (10-year age bands, NHIS 298-category Excel reader).
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 #  Imported by 38_build_Estd_all.py (and through it by 99L2_build_Estd3_lipt.py); it has no main step of its own.
 #  NFC, AGES and age10(): Unicode normalisation and the eight 10-year age bands (0-9 ... 60-69, 70+).
 #  excel_year(): reads one yearly NHIS workbook of patients by the 298 disease categories and age (file "<year>_298 ...xlsx").

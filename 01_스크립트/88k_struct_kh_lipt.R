@@ -1,5 +1,5 @@
 # 88k_struct_kh_lipt.R - Knorr-Held type I-IV space-time models.
-# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.1, MIT license). See README.md (Pipeline) for how to run.
+# Part of the analysis code for lifestyle-treated-dyslipidemia-korea (v1.0.2, MIT license). See README.md (Pipeline) for how to run.
 suppressPackageStartupMessages({library(INLA);library(sf);library(spdep);library(jsonlite);library(Matrix)})
 args<-commandArgs(trailingOnly=TRUE);GROUP<-args[1];stopifnot(!is.na(GROUP))
 TAG<-Sys.getenv("TAG",unset="MENTAL");FOCAL<-Sys.getenv("FOCAL",unset="walking_practice_rate");VER<-Sys.getenv("ST_VER",unset="std");SUF<-paste0("_",VER)
@@ -51,31 +51,31 @@ done<-function(an)file.exists(file.path(RES,sprintf("S43_part_%s.csv",an)))
 run<-function(an,grp,expr_fun,vars=MAINV,data=DD,note="",cmp=""){if(done(an)){LOG("%s exists, skip",an);return(invisible())};t0<-Sys.time();m<-expr_fun();save_part(an,grp,m,vars,data,t0,note,cmp);invisible(m)}
 
 if(GROUP=="nb"){
-  m<-run("main_queen","1_neighbour",function()safe(MAINV),note="주모형 재적합(S3 와 같은 사양)",cmp="neighbour")
+  m<-run("main_queen","1_neighbour",function()safe(MAINV),note="principal model refit (same specification as S3)",cmp="neighbour")
   if(!is.null(m)){mu<-m$summary.fitted.values$mean
     fx<-m$summary.fixed$mean;names(fx)<-gsub("`","",rownames(m$summary.fixed));X<-as.matrix(DD[,MAINV]);lpf<-fx["(Intercept)"]+X%*%fx[MAINV]
     write.csv(data.frame(year=DD$year,fbd_region=DD$fbd_region,window=DD$window,cases=DD$cases,E=DD$E,fitted_RR=mu,fixed_lp=as.numeric(lpf)),file.path(RES,"S20_fitted_main.csv"),row.names=FALSE,fileEncoding="UTF-8")}
   for(k in 3:5){an<-sprintf("knn%d",k);if(done(an))next
     nbk<-make.sym.nb(knn2nb(knearneigh(cen,k=k)));gf<-file.path(RES,sprintf("S20_nb_knn%d.graph",k));nb2INLA(gf,nbk);gk<-inla.read.graph(gf)
-    run(an,"1_neighbour",function()safe(MAINV,sp=SPf("gk")),note=sprintf("KNN k=%d(중심점, 대칭화), 평균 이웃 %.2f, 부분그래프 %d",k,mean(card(nbk)),n.comp.nb(nbk)$nc),cmp="neighbour")}
+    run(an,"1_neighbour",function()safe(MAINV,sp=SPf("gk")),note=sprintf("KNN k=%d (centroids, symmetrized), mean neighbours %.2f, subgraphs %d",k,mean(card(nbk)),n.comp.nb(nbk)$nc),cmp="neighbour")}
 }
 
 if(GROUP=="struct"){
-  run("icar_besag","2_structure",function()safe(MAINV,sp="f(area,model='besag',graph=g,scale.model=TRUE,constr=TRUE,hyper=pcp)"),note="ICAR(besag)만",cmp="structure")
-  run("iid_only","2_structure",function()safe(MAINV,sp="f(area,model='iid',hyper=pcp)"),note="공간 iid 만",cmp="structure")
-  run("no_spatial","2_structure",function()safe(MAINV,sp=""),note="공간효과 없음(RW1+연도 iid 만)",cmp="structure")
+  run("icar_besag","2_structure",function()safe(MAINV,sp="f(area,model='besag',graph=g,scale.model=TRUE,constr=TRUE,hyper=pcp)"),note="ICAR (besag) only",cmp="structure")
+  run("iid_only","2_structure",function()safe(MAINV,sp="f(area,model='iid',hyper=pcp)"),note="spatial iid only",cmp="structure")
+  run("no_spatial","2_structure",function()safe(MAINV,sp=""),note="no spatial effect (RW1 + year iid only)",cmp="structure")
   pcA<-pcU(1,0.01,0.5,0.5);pcB<-pcU(2,0.05,0.5,0.5);pcC<-pcU(0.5,0.01,0.5,0.5)
-  run("pc_phi_flat","2_structure",function()safe(MAINV,sp=SPf(hyper="pcC")),note="BYM2 PC: prec(0.5,0.01) 유지, phi P(phi<0.5)=0.5(중립)",cmp="structure")
-  run("pc_relaxA","2_structure",function()safe(MAINV,sp=SPf(hyper="pcA")),note="BYM2 PC 완화 A: prec P(sd>1)=0.01, phi P(phi<0.5)=0.5",cmp="structure")
-  run("pc_relaxB","2_structure",function()safe(MAINV,sp=SPf(hyper="pcB")),note="BYM2 PC 완화 B: prec P(sd>2)=0.05, phi P(phi<0.5)=0.5",cmp="structure")
+  run("pc_phi_flat","2_structure",function()safe(MAINV,sp=SPf(hyper="pcC")),note="BYM2 PC: prec(0.5,0.01) kept, phi P(phi<0.5)=0.5 (neutral)",cmp="structure")
+  run("pc_relaxA","2_structure",function()safe(MAINV,sp=SPf(hyper="pcA")),note="BYM2 PC relaxed A: prec P(sd>1)=0.01, phi P(phi<0.5)=0.5",cmp="structure")
+  run("pc_relaxB","2_structure",function()safe(MAINV,sp=SPf(hyper="pcB")),note="BYM2 PC relaxed B: prec P(sd>2)=0.05, phi P(phi<0.5)=0.5",cmp="structure")
 }
 
 if(GROUP=="kh"){
   khfit<-function(type,d) kh_fit_repaired(type,d,MAINV)
   for(ty in c("II","III","IV")){an<-sprintf("KH_type%s",ty);if(done(an))next
     inla.setOption(inla.timeout=if(ty=="IV")5400 else 0)
-    t0<-Sys.time();m<-khfit(ty,DD);note<-sprintf("Knorr-Held Type %s(BYM2+RW1+iid 위에 공간×시간 상호작용, 합 0 제약)",ty);d<-DD
-    if(FALSE&&is.null(m)&&ty=="IV"){LOG("KH IV full failed/timeout -> 2016-2024");d<-DD[DD$year>=2016,];d$time<-d$year-2015;d$yiid<-d$time;t0<-Sys.time();m<-khfit(ty,d);note<-paste(note,"— 전체 기간 실패/시간초과로 2016-2024 제한")}
+    t0<-Sys.time();m<-khfit(ty,DD);note<-sprintf("Knorr-Held Type %s (space x time interaction on top of BYM2+RW1+iid, sum-to-zero constraints)",ty);d<-DD
+    if(FALSE&&is.null(m)&&ty=="IV"){LOG("KH IV full failed/timeout -> 2016-2024");d<-DD[DD$year>=2016,];d$time<-d$year-2015;d$yiid<-d$time;t0<-Sys.time();m<-khfit(ty,d);note<-paste(note,"- restricted to 2016-2024 because the full period failed or timed out")}
     save_part(an,"3_spacetime",m,MAINV,d,t0,note,if(identical(d,DD))"spacetime" else "spacetime_2016")}
   inla.setOption(inla.timeout=0)
 }
@@ -90,20 +90,20 @@ if(GROUP=="kh4x"){
   SUB<-Sys.getenv("SUB","all")
   if(SUB%in%c("all","a")&&!done("KH4_bw_twoway")){d<-DD;BW<-character(0)
     for(v in ROBV){mi<-ave(d[[v]],d$area,FUN=mean);mt<-ave(d[[v]],d$year,FUN=mean);d[[paste0(v,"__between")]]<-mi;d[[paste0(v,"__within")]]<-d[[v]]-mi-mt+mean(d[[v]]);BW<-c(BW,paste0(v,c("__between","__within")))}
-    vv<-c(setdiff(MAINV,ROBV),BW);t0<-Sys.time();save_part("KH4_bw_twoway","3_spacetime",khv(vv,d),vv,d,t0,"KH IV + 강건 집합 이원 중심화 분해")}
+    vv<-c(setdiff(MAINV,ROBV),BW);t0<-Sys.time();save_part("KH4_bw_twoway","3_spacetime",khv(vv,d),vv,d,t0,"KH IV + two-way centring decomposition of the robust set")}
   dsl<-grep("dyslip",MAINV,value=TRUE);scr<-grep("screening_uptake",MAINV,value=TRUE)
-  if(SUB%in%c("all","b")&&length(dsl)&&!done("KH4_drop_dyslipidemia")){vv<-setdiff(MAINV,dsl);t0<-Sys.time();save_part("KH4_drop_dyslipidemia","3_spacetime",khv(vv,DD),vv,DD,t0,"KH IV, 이상지질혈증(2018 정의 변경) 제외")}
-  if(SUB%in%c("all","c")&&length(scr)&&!done("KH4_drop_screening")){vv<-setdiff(MAINV,scr);t0<-Sys.time();save_part("KH4_drop_screening","3_spacetime",khv(vv,DD),vv,DD,t0,"KH IV, 검진 수검률 강제통제 제외")}
-  if(SUB%in%c("all","d")&&!done("KH4_S5_reproductive")&&!is.null(SETS[["S5_reproductive"]])){vv<-unique(c(SETS[["S5_reproductive"]],FORCED));t0<-Sys.time();save_part("KH4_S5_reproductive","3_spacetime",khv(vv,DD),vv,DD,t0,"KH IV, 간명 세트 S5")}
-  if(SUB%in%c("all","e")&&length(scr)&&!done("T0_drop_screening")){vv<-setdiff(MAINV,scr);t0<-Sys.time();save_part("T0_drop_screening","1_base",safe(vv,data=DD),vv,DD,t0,"기본형, 검진 수검률 강제통제 제외")}
+  if(SUB%in%c("all","b")&&length(dsl)&&!done("KH4_drop_dyslipidemia")){vv<-setdiff(MAINV,dsl);t0<-Sys.time();save_part("KH4_drop_dyslipidemia","3_spacetime",khv(vv,DD),vv,DD,t0,"KH IV, dyslipidaemia (definition changed in 2018) excluded")}
+  if(SUB%in%c("all","c")&&length(scr)&&!done("KH4_drop_screening")){vv<-setdiff(MAINV,scr);t0<-Sys.time();save_part("KH4_drop_screening","3_spacetime",khv(vv,DD),vv,DD,t0,"KH IV, screening-uptake forced control excluded")}
+  if(SUB%in%c("all","d")&&!done("KH4_S5_reproductive")&&!is.null(SETS[["S5_reproductive"]])){vv<-unique(c(SETS[["S5_reproductive"]],FORCED));t0<-Sys.time();save_part("KH4_S5_reproductive","3_spacetime",khv(vv,DD),vv,DD,t0,"KH IV, parsimonious set S5")}
+  if(SUB%in%c("all","e")&&length(scr)&&!done("T0_drop_screening")){vv<-setdiff(MAINV,scr);t0<-Sys.time();save_part("T0_drop_screening","1_base",safe(vv,data=DD),vv,DD,t0,"base model, screening-uptake forced control excluded")}
   P80<-file.path(ROOT,"04_분석","MENTAL","results_std3","S23_panel_extra.csv")
   if(SUB%in%c("f","g")){X<-read.csv(P80,fileEncoding="UTF-8-BOM",stringsAsFactors=FALSE);X$fbd_region<-enc2utf8(X$fbd_region);d80<-merge(DD,X[,c("year","fbd_region","pop80_share")],by=c("year","fbd_region"),all.x=TRUE,sort=FALSE);d80<-d80[order(d80$id),];stopifnot(!anyNA(d80$pop80_share));vv<-c(MAINV,"pop80_share")
-    if(SUB=="f"&&!done("T0_add_pop80")){t0<-Sys.time();save_part("T0_add_pop80","1_base",safe(vv,data=d80),vv,d80,t0,"기본형 + 80세 이상 인구 비율 강제통제(std3형, 전체 인구 기준)")}
-    if(SUB=="g"&&!done("KH4_add_pop80")){t0<-Sys.time();save_part("KH4_add_pop80","3_spacetime",khv(vv,d80),vv,d80,t0,"KH IV + 80세 이상 인구 비율 강제통제")}}
+    if(SUB=="f"&&!done("T0_add_pop80")){t0<-Sys.time();save_part("T0_add_pop80","1_base",safe(vv,data=d80),vv,d80,t0,"base model + forced control for the share aged 80+ (std3 form, whole population)")}
+    if(SUB=="g"&&!done("KH4_add_pop80")){t0<-Sys.time();save_part("KH4_add_pop80","3_spacetime",khv(vv,d80),vv,d80,t0,"KH IV + forced control for the share aged 80+")}}
   if(SUB%in%c("j","k")){X<-read.csv(file.path(RES,"S45_panel_longlag.csv"),fileEncoding="UTF-8-BOM",stringsAsFactors=FALSE);X$fbd_region<-enc2utf8(X$fbd_region);dl<-merge(DD,X,by=c("year","fbd_region"),all.x=TRUE,sort=FALSE);dl<-dl[order(dl$id),]
     FV2<-c("total_fertility_rate","mean_age_first_marriage_wife")
-    if(SUB=="j"&&!done("T0_lag10_fertility_marriage")){vv<-c(setdiff(MAINV,FV2),paste0(FV2,"__lag10"));t0<-Sys.time();save_part("T0_lag10_fertility_marriage","1_base",safe(vv,data=dl),vv,dl,t0,"합계출산율·초혼연령을 10년 전 값으로(2001-2014)")}
-    if(SUB=="k"&&!done("T0_base0004_fertility_marriage")){vv<-c(setdiff(MAINV,FV2),paste0(FV2,"__base0004"));t0<-Sys.time();save_part("T0_base0004_fertility_marriage","1_base",safe(vv,data=dl),vv,dl,t0,"합계출산율·초혼연령을 2000-2004 지역 평균(고정 노출)으로")}}
+    if(SUB=="j"&&!done("T0_lag10_fertility_marriage")){vv<-c(setdiff(MAINV,FV2),paste0(FV2,"__lag10"));t0<-Sys.time();save_part("T0_lag10_fertility_marriage","1_base",safe(vv,data=dl),vv,dl,t0,"total fertility rate and age at first marriage at values 10 years earlier (2001-2014)")}
+    if(SUB=="k"&&!done("T0_base0004_fertility_marriage")){vv<-c(setdiff(MAINV,FV2),paste0(FV2,"__base0004"));t0<-Sys.time();save_part("T0_base0004_fertility_marriage","1_base",safe(vv,data=dl),vv,dl,t0,"total fertility rate and age at first marriage as 2000-2004 district means (fixed exposure)")}}
   if(SUB%in%c("l","m")){X<-read.csv(file.path(RES,"S45_panel_longlag.csv"),fileEncoding="UTF-8-BOM",stringsAsFactors=FALSE);X$fbd_region<-enc2utf8(X$fbd_region);dl<-merge(DD,X,by=c("year","fbd_region"),all.x=TRUE,sort=FALSE);dl<-dl[order(dl$id),]
     FV2<-c("total_fertility_rate","mean_age_first_marriage_wife");suf<-if(SUB=="l")"__lag10" else "__base0004";an<-paste0("KH4",suf)
     if(!done(an)){vv<-c(setdiff(MAINV,FV2),paste0(FV2,suf));t0<-Sys.time();save_part(an,"3_spacetime",khv(vv,dl),vv,dl,t0,paste("KH IV +",suf))}}
@@ -112,37 +112,37 @@ if(GROUP=="kh4x"){
     out<-data.frame(fbd_region=G$region,RR=round(exp(sr$mean[1:n]),4),P_gt1=round(p1,4),class=ifelse(p1>0.95,"hotspot",ifelse(p1<0.05,"coldspot","neutral")))
     write.csv(out,file.path(RES,"S46_KH4_spatialRR.csv"),row.names=FALSE,fileEncoding="UTF-8");LOG("KH4 spatial: hot %d cold %d",sum(out$class=="hotspot"),sum(out$class=="coldspot"))}
   if(SUB=="h"&&!done("T0_obs_2015_noemp")){d<-DD[DD$year>=2015,];d$time<-d$year-2014;d$yiid<-d$time;vv<-setdiff(MAINV,c("regular_employee_share","female_employment_rate"))
-    t0<-Sys.time();save_part("T0_obs_2015_noemp","1_base",safe(vv,data=d),vv,d,t0,"2015-2024(1인가구 전 연도 관측), 대체 비중 큰 고용 2변수 제외")}
+    t0<-Sys.time();save_part("T0_obs_2015_noemp","1_base",safe(vv,data=d),vv,d,t0,"2015-2024 (one-person households observed in all years), two employment variables with large substituted shares excluded")}
   if(SUB=="i"){FV<-intersect(c("total_fertility_rate","mean_age_first_marriage_wife","fertility_rate_35_39","mean_maternal_age"),MAINV)
-    for(fv in FV){an<-paste0("T0_single_",fv);if(done(an))next;vv<-c(setdiff(MAINV,setdiff(FV,fv)));t0<-Sys.time();save_part(an,"1_base",safe(vv,data=DD),vv,DD,t0,paste("출산 변수 하나만:",fv))}}
+    for(fv in FV){an<-paste0("T0_single_",fv);if(done(an))next;vv<-c(setdiff(MAINV,setdiff(FV,fv)));t0<-Sys.time();save_part(an,"1_base",safe(vv,data=DD),vv,DD,t0,paste("one fertility variable only:",fv))}}
   inla.setOption(inla.timeout=0)
 }
 
 if(GROUP=="conf"){
   if(!done("RSR")){Xb<-apply(as.matrix(DD[,MAINV]),2,function(x)tapply(x,DD$area,mean))[as.character(1:n),];Xb<-scale(Xb,scale=FALSE)
     RSRC<<-list(A=cbind(t(Xb),matrix(0,ncol(Xb),n)),e=rep(0,ncol(Xb)))
-    run("RSR","4_spatial_confounding",function()safe(MAINV,sp=SPf(extra=",extraconstr=RSRC"),env=.GlobalEnv),note=sprintf("RSR: BYM2 총효과 ⟂ 시군구 평균 공변량 %d개(제약)",ncol(Xb)),cmp="main_data")}
-  run("negctl_road","5_negcontrol",function()safe(c(MAINV,"road_pavement_rate")),vars=c(MAINV,"road_pavement_rate"),note="도로포장률(음성대조)을 통제로 추가",cmp="main_data")
+    run("RSR","4_spatial_confounding",function()safe(MAINV,sp=SPf(extra=",extraconstr=RSRC"),env=.GlobalEnv),note=sprintf("RSR: BYM2 total effect orthogonal to %d district-mean covariates (constraints)",ncol(Xb)),cmp="main_data")}
+  run("negctl_road","5_negcontrol",function()safe(c(MAINV,"road_pavement_rate")),vars=c(MAINV,"road_pavement_rate"),note="road paving rate (negative control) added as a control",cmp="main_data")
   DD$urban_q5f<-factor(DD$urban_q5);for(q in 2:5)DD[[sprintf("urbQ%d",q)]]<-as.integer(DD$urban_q5==q)
   V0<-setdiff(MAINV,"urban_population_share")
-  run("urban_quintile","5_negcontrol",function()safe(c(V0,sprintf("urbQ%d",2:5))),vars=c(V0,sprintf("urbQ%d",2:5)),note="도시지역 인구 비율 선형항 → 5분위 범주(기준 Q1)",cmp="main_data",data=DD)
-  run("urban_rw2","5_negcontrol",function()safe(V0,extra="f(urban_rw2_bin,model='rw2',scale.model=TRUE,constr=TRUE,hyper=pcp)",data=DD),vars=V0,note="도시지역 인구 비율 선형항 → 20분위 rw2",cmp="main_data",data=DD)
-  run("urban_q5_plus_road","5_negcontrol",function()safe(c(V0,sprintf("urbQ%d",2:5),"road_pavement_rate")),vars=c(V0,sprintf("urbQ%d",2:5),"road_pavement_rate"),note="도시성 5분위 + 도로포장률",cmp="main_data",data=DD)
-  run("access_outside","6_care_use",function()safe(c(MAINV,"outside_care_share")),vars=c(MAINV,"outside_care_share"),note="관외진료 비율(거주지 기준 전체 질환 관외/(관내+관외) 진료실인원, 1 SD) 추가",cmp="main_data")
-  run("access_clinics","6_care_use",function()safe(c(MAINV,"clinics_per_100k")),vars=c(MAINV,"clinics_per_100k"),note="의원 수/10만(1 SD) 추가",cmp="main_data")
-  run("access_both","6_care_use",function()safe(c(MAINV,"outside_care_share","clinics_per_100k")),vars=c(MAINV,"outside_care_share","clinics_per_100k"),note="관외진료 비율 + 의원 밀도 추가",cmp="main_data")
+  run("urban_quintile","5_negcontrol",function()safe(c(V0,sprintf("urbQ%d",2:5))),vars=c(V0,sprintf("urbQ%d",2:5)),note="urban population share linear term -> quintile categories (reference Q1)",cmp="main_data",data=DD)
+  run("urban_rw2","5_negcontrol",function()safe(V0,extra="f(urban_rw2_bin,model='rw2',scale.model=TRUE,constr=TRUE,hyper=pcp)",data=DD),vars=V0,note="urban population share linear term -> rw2 over 20 quantile bins",cmp="main_data",data=DD)
+  run("urban_q5_plus_road","5_negcontrol",function()safe(c(V0,sprintf("urbQ%d",2:5),"road_pavement_rate")),vars=c(V0,sprintf("urbQ%d",2:5),"road_pavement_rate"),note="urbanicity quintiles + road paving rate",cmp="main_data",data=DD)
+  run("access_outside","6_care_use",function()safe(c(MAINV,"outside_care_share")),vars=c(MAINV,"outside_care_share"),note="share of care outside the district (all diseases by residence, outside/(inside+outside) patients, 1 SD) added",cmp="main_data")
+  run("access_clinics","6_care_use",function()safe(c(MAINV,"clinics_per_100k")),vars=c(MAINV,"clinics_per_100k"),note="clinics per 100,000 (1 SD) added",cmp="main_data")
+  run("access_both","6_care_use",function()safe(c(MAINV,"outside_care_share","clinics_per_100k")),vars=c(MAINV,"outside_care_share","clinics_per_100k"),note="share of care outside the district + clinic density added",cmp="main_data")
 }
 
 if(GROUP=="period"){
   d<-DD;d$cases[d$year%in%2020:2021]<-NA
-  run("excl_2020_2021","7_period_region",function()safe(MAINV,data=d),data=d,note="2020-2021 결측 처리(시간 색인 유지)",cmp="excl_2020_2021")
+  run("excl_2020_2021","7_period_region",function()safe(MAINV,data=d),data=d,note="2020-2021 set to missing (time index kept)",cmp="excl_2020_2021")
   d<-DD[DD$year>=2015,];d$time<-d$year-2014;d$yiid<-d$time
-  run("start_2015","7_period_region",function()safe(MAINV,data=d),data=d,note="2015-2024만(공변량은 전체 기간 z 그대로)",cmp="start_2015")
+  run("start_2015","7_period_region",function()safe(MAINV,data=d),data=d,note="2015-2024 only (covariates keep the full-period z)",cmp="start_2015")
   d<-DD;d$cases[d$boundary_change==1]<-NA
-  run("excl_boundary_change","7_period_region",function()safe(MAINV,data=d),data=d,note="경계변경 4곳(세종·군위·청주·창원) 결측 처리(그래프 유지)",cmp="excl_bch")
+  run("excl_boundary_change","7_period_region",function()safe(MAINV,data=d),data=d,note="4 boundary-change districts (Sejong, Gunwi, Cheongju, Changwon) set to missing (graph kept)",cmp="excl_bch")
   d<-DD;d$cases[d$boundary_any==1]<-NA
-  run("excl_boundary_any","7_period_region",function()safe(MAINV,data=d),data=d,note=sprintf("boundary_flag 있는 시군구 전체 + 세종·군위 %d곳 결측 처리(개명·표기정정·하위구 합산 포함)",length(unique(DD$area[DD$boundary_any==1]))),cmp="excl_bany")
-  run("dementia_E_nondem","8_dementia",function()safe(MAINV,ecol="E_sens"),note=sprintf("offset = %s(치매 112 제외 연령 프로파일, S10 재현)",INFO$offset_sensitivity),cmp="E_nondem")
+  run("excl_boundary_any","7_period_region",function()safe(MAINV,data=d),data=d,note=sprintf("all districts with a boundary_flag + Sejong and Gunwi, %d districts set to missing (including renaming, spelling correction and sub-district merging)",length(unique(DD$area[DD$boundary_any==1]))),cmp="excl_bany")
+  run("dementia_E_nondem","8_dementia",function()safe(MAINV,ecol="E_sens"),note=sprintf("offset = %s (age profile excluding dementia code 112, reproduces S10)",INFO$offset_sensitivity),cmp="E_nondem")
 }
 
 if(GROUP=="maps"){suppressPackageStartupMessages({library(ggplot2);library(dplyr);library(patchwork)})
@@ -197,7 +197,7 @@ if(GROUP=="review"){
   if(!file.exists(F50r)){
     RG<-c("서울시"="Capital","인천시"="Capital","경기도"="Capital","대전시"="Chungcheong","세종시"="Chungcheong","충청북도"="Chungcheong","충청남도"="Chungcheong","광주시"="Honam","전라북도"="Honam","전라남도"="Honam",
           "부산시"="Yeongnam","대구시"="Yeongnam","울산시"="Yeongnam","경상북도"="Yeongnam","경상남도"="Yeongnam","강원도"="Gangwon-Jeju","제주도"="Gangwon-Jeju")
-    DD$rg<-unname(RG[enc2utf8(DD$sido_std)]);if(anyNA(DD$rg))stop("권역 미매칭 시도: ",paste(unique(DD$sido_std[is.na(DD$rg)]),collapse=","))
+    DD$rg<-unname(RG[enc2utf8(DD$sido_std)]);if(anyNA(DD$rg))stop("province not matched to a region: ",paste(unique(DD$sido_std[is.na(DD$rg)]),collapse=","))
     m0<-safe(MAINV);w0<-m0$waic$waic;out<-list()
     for(v in ROBV){D2<-DD;nv<-character(0);for(r in unique(DD$rg)){cn<-paste0(v,"__",gsub("-","_",r));D2[[cn]]<-D2[[v]]*(D2$rg==r);nv<-c(nv,cn)}
       m<-safe(c(setdiff(MAINV,v),nv),data=D2);if(is.null(m))next
@@ -214,7 +214,7 @@ if(GROUP=="combine"){
   fs<-list.files(RES,pattern="^S43_part_.*\\.csv$",full.names=TRUE);P<-do.call(rbind,lapply(fs,function(f)read.csv(f,fileEncoding="UTF-8",stringsAsFactors=FALSE)))
   ad<-function(f,an,grp,note,cmp){x<-read.csv(file.path(RES,f),stringsAsFactors=FALSE);data.frame(analysis=an,group=grp,cov=x$cov,IRR=x$IRR,lo=x$lo,hi=x$hi,cred=x$cred,
     role=ifelse(x$cov%in%HYPV,"hypothesis",ifelse(x$cov%in%FORCED,"forced","added")),WAIC=x$WAIC,DIC=NA,n_obs=INFO$n_rows,n_regions=INFO$n_sgg,years="2011-2024",phi=NA,comparable_group=cmp,minutes=NA,note=note,stringsAsFactors=FALSE)}
-  P<-rbind(P,ad("S9_typeI_IRR.csv","KH_typeI_S9","3_spacetime","Knorr-Held Type I(기존 S9, 81)","spacetime"),ad("S10_offset_sensitivity_IRR.csv","dementia_E_nondem_S10","8_dementia",sprintf("기존 S10(81) offset %s",INFO$offset_sensitivity),"E_nondem"))
+  P<-rbind(P,ad("S9_typeI_IRR.csv","KH_typeI_S9","3_spacetime","Knorr-Held Type I (existing S9, 81)","spacetime"),ad("S10_offset_sensitivity_IRR.csv","dementia_E_nondem_S10","8_dementia",sprintf("existing S10 (81) offset %s",INFO$offset_sensitivity),"E_nondem"))
   P$cmp2<-ifelse(P$comparable_group%in%c("neighbour","structure","spacetime","main_data"),"main_data",P$comparable_group)
   w<-unique(P[,c("analysis","comparable_group","cmp2","WAIC")]);mainW<-w$WAIC[w$analysis=="main_queen"]
   P$dWAIC_vs_main<-ifelse(P$cmp2=="main_data",round(P$WAIC-mainW,1),NA)
