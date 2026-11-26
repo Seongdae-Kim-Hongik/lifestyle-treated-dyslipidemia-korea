@@ -1,0 +1,401 @@
+{
+ "tag": "LIPT",
+ "outcome_column": "chk__lipt_cases",
+ "outcome_label_en": "People already diagnosed with and receiving drug treatment for dyslipidaemia at the National General Health Screening (classified as 'existing disease - dyslipidaemia'; NHIS health screening statistics, annual)",
+ "disease_ko": "검진 이상지질혈증 유질환자(이미 진단·치료 중인 이상지질혈증 부담)",
+ "disease_en": "Treated dyslipidaemia among screening examinees (care burden of diagnosed dyslipidaemia)",
+ "forced": [
+  "urban_population_share",
+  "physicians_per_1000",
+  "sex_ratio",
+  "fiscal_independence",
+  "pop80_share"
+ ],
+ "candidates": [
+  "im_specialists_per_100k",
+  "screening_uptake",
+  "tertiary_educated_share",
+  "obesity_rate",
+  "high_risk_drinking_rate",
+  "current_smoking_rate",
+  "walking_practice_rate",
+  "moderate_pa_rate",
+  "public_sports_facilities_per_100k",
+  "basic_livelihood_rate",
+  "single_person_household_share"
+ ],
+ "negative_controls": [
+  "hit_and_run_rate",
+  "fires_per_10000",
+  "waste_recycling_rate"
+ ],
+ "sets": {
+  "S1_narrative_full": [
+   "im_specialists_per_100k",
+   "screening_uptake",
+   "tertiary_educated_share",
+   "obesity_rate",
+   "high_risk_drinking_rate",
+   "current_smoking_rate",
+   "walking_practice_rate",
+   "moderate_pa_rate",
+   "public_sports_facilities_per_100k",
+   "basic_livelihood_rate",
+   "single_person_household_share"
+  ],
+  "S2_care_reach_selection": [
+   "im_specialists_per_100k",
+   "screening_uptake",
+   "tertiary_educated_share"
+  ],
+  "S3_lipid_risk_factors": [
+   "obesity_rate",
+   "high_risk_drinking_rate",
+   "current_smoking_rate",
+   "walking_practice_rate",
+   "moderate_pa_rate",
+   "public_sports_facilities_per_100k"
+  ],
+  "S4_structure": [
+   "basic_livelihood_rate",
+   "tertiary_educated_share",
+   "single_person_household_share"
+  ],
+  "S5_core": [
+   "im_specialists_per_100k",
+   "screening_uptake",
+   "obesity_rate",
+   "walking_practice_rate",
+   "moderate_pa_rate",
+   "basic_livelihood_rate"
+  ]
+ },
+ "sensitivity_sets": [],
+ "sensitivity_only_vars": [
+  "ext__unmet_need_rate",
+  "ext__dx_htn_share",
+  "ext__dx_dm_share"
+ ],
+ "offset_column": "chk__lipt_examinees",
+ "offset_sensitivity": null,
+ "offset_fallback": null,
+ "exclude_years": [],
+ "vars": {
+  "urban_population_share": {
+   "key": "urban_population_share",
+   "column": "eloc__DT_1YL20421E__1인당도시지역면적현황__도시지역인구",
+   "transform": "pct_of_pop",
+   "label_en": "Urban-zone population share (%)",
+   "label_ko": "도시지역 인구 비율",
+   "expected_direction": "",
+   "role": "forced",
+   "raw_key": "eloc__DT_1YL20421E__1인당도시지역면적현황__도시지역인구"
+  },
+  "physicians_per_1000": {
+   "key": "physicians_per_1000",
+   "column": "eloc__DT_1YL20981__인구천명당의료기관종사의사수＜br＞(A÷B×1000)",
+   "transform": "none",
+   "label_en": "Physicians per 1000",
+   "label_ko": "인구 천명당 의사 수",
+   "expected_direction": "",
+   "role": "forced",
+   "raw_key": "eloc__DT_1YL20981__인구천명당의료기관종사의사수＜br＞(A÷B×1000)"
+  },
+  "sex_ratio": {
+   "key": "sex_ratio",
+   "column": "eloc__DT_1YL20701__남녀성비＜br＞(A÷B×100)",
+   "transform": "none",
+   "label_en": "Sex ratio (men per 100 women)",
+   "label_ko": "남녀성비",
+   "expected_direction": "",
+   "role": "forced",
+   "raw_key": "eloc__DT_1YL20701__남녀성비＜br＞(A÷B×100)"
+  },
+  "fiscal_independence": {
+   "key": "fiscal_independence",
+   "column": "eloc__DT_1YL20891__재정자주도(세입과목개편전)",
+   "transform": "none",
+   "label_en": "Fiscal independence (%)",
+   "label_ko": "재정자주도",
+   "expected_direction": "",
+   "role": "forced",
+   "raw_key": "eloc__DT_1YL20891__재정자주도(세입과목개편전)"
+  },
+  "pop80_share": {
+   "key": "pop80_share",
+   "column": "ext__pop80_share",
+   "transform": "none",
+   "label_en": "Population aged 80+ share (%)",
+   "label_ko": "80세 이상 인구 비율",
+   "expected_direction": "",
+   "role": "forced",
+   "raw_key": "ext__pop80_share"
+  },
+  "im_specialists_per_100k": {
+   "key": "im_specialists_per_100k",
+   "column": "ext__im_specialists_per100k",
+   "transform": "log1p",
+   "label_en": "Internal-medicine specialists per 100k",
+   "label_ko": "내과 전문의 수(10만 명당)",
+   "expected_direction": "+ (내과 전문의 밀도: 지질 검사·스타틴 처방 기회 → 진단·치료 도달 많음)",
+   "role": "candidate",
+   "raw_key": "ext__im_specialists_per100k"
+  },
+  "screening_uptake": {
+   "key": "screening_uptake",
+   "column": "chk__수검률",
+   "transform": "none",
+   "label_en": "Health screening uptake (%)",
+   "label_ko": "건강검진 수검률",
+   "expected_direction": "- (일반검진 수검률: 수검률이 높으면 저위험·무치료자까지 수검 → 수검자 중 유질환자 비율 낮음, 검진 선택 축)",
+   "role": "candidate",
+   "raw_key": "chk__수검률"
+  },
+  "tertiary_educated_share": {
+   "key": "tertiary_educated_share",
+   "column": "ext__tertiary_educated_share",
+   "transform": "none",
+   "label_en": "Tertiary-educated share (%)",
+   "label_ko": "고등교육 이수 비율",
+   "expected_direction": "+ (대졸 이상 비율: 건강 문해력·의료 이용 → 진단·치료 도달 많음)",
+   "role": "candidate",
+   "raw_key": "ext__tertiary_educated_share"
+  },
+  "obesity_rate": {
+   "key": "obesity_rate",
+   "column": "kchs__DT_H_OBE_OBE__SR",
+   "transform": "none",
+   "label_en": "Obesity rate (self-reported SR %)",
+   "label_ko": "비만율(자가보고)",
+   "expected_direction": "+ (자가보고 비만율: 이상지질혈증 발생의 주된 수정 가능 위험)",
+   "role": "candidate",
+   "raw_key": "kchs__DT_H_OBE_OBE__SR"
+  },
+  "high_risk_drinking_rate": {
+   "key": "high_risk_drinking_rate",
+   "column": "kchs__DT_117075_H_DR_HIGH_WH__SR",
+   "transform": "none",
+   "label_en": "High-risk drinking rate (SR %)",
+   "label_ko": "고위험음주율",
+   "expected_direction": "+ (고위험음주: 고중성지방혈증)",
+   "role": "candidate",
+   "raw_key": "kchs__DT_117075_H_DR_HIGH_WH__SR"
+  },
+  "current_smoking_rate": {
+   "key": "current_smoking_rate",
+   "column": "kchs__DT_H_SM__SR",
+   "transform": "none",
+   "label_en": "Current smoking rate (SR %)",
+   "label_ko": "현재흡연율",
+   "expected_direction": "+ (현재흡연: HDL 저하·죽상경화 위험 → 이상지질혈증 진단)",
+   "role": "candidate",
+   "raw_key": "kchs__DT_H_SM__SR"
+  },
+  "walking_practice_rate": {
+   "key": "walking_practice_rate",
+   "column": "kchs__DT_H_EX_WALK__SR",
+   "transform": "none",
+   "label_en": "Walking practice rate (SR %)",
+   "label_ko": "걷기 실천율",
+   "expected_direction": "- (걷기 실천: 중성지방·HDL 개선 → 이상지질혈증 적음)",
+   "role": "candidate",
+   "raw_key": "kchs__DT_H_EX_WALK__SR"
+  },
+  "moderate_pa_rate": {
+   "key": "moderate_pa_rate",
+   "column": "kchs__DT_H_EX_PHY__SR",
+   "transform": "none",
+   "label_en": "Moderate-or-higher physical activity rate (SR %)",
+   "label_ko": "중강도 이상 신체활동 실천율",
+   "expected_direction": "- (중강도 이상 신체활동: 지질 개선)",
+   "role": "candidate",
+   "raw_key": "kchs__DT_H_EX_PHY__SR"
+  },
+  "public_sports_facilities_per_100k": {
+   "key": "public_sports_facilities_per_100k",
+   "column": "fac__total",
+   "transform": "per100k",
+   "label_en": "Public sports facilities per 100k",
+   "label_ko": "공공체육시설 수(10만 명당)",
+   "expected_direction": "- (공공체육시설 밀도: 신체활동 환경)",
+   "role": "candidate",
+   "raw_key": "fac__total"
+  },
+  "basic_livelihood_rate": {
+   "key": "basic_livelihood_rate",
+   "column": "ext__basic_livelihood_rate",
+   "transform": "none",
+   "label_en": "Basic-livelihood security recipient rate (%)",
+   "label_ko": "국민기초생활보장 수급자 비율",
+   "expected_direction": "- (기초생활 수급률: 박탈 → 진단·치료 도달 낮음(치료 격차))",
+   "role": "candidate",
+   "raw_key": "ext__basic_livelihood_rate"
+  },
+  "single_person_household_share": {
+   "key": "single_person_household_share",
+   "column": "eloc__DT_1YL21161__1인가구비율＜br＞(A÷B×100)",
+   "transform": "none",
+   "label_en": "Single-person household share (%)",
+   "label_ko": "1인가구비율",
+   "expected_direction": "- (1인 가구: 진료 권유·지지 부족 → 진단·치료 도달 낮음)",
+   "role": "candidate",
+   "raw_key": "eloc__DT_1YL21161__1인가구비율＜br＞(A÷B×100)"
+  },
+  "ext__unmet_need_rate": {
+   "key": "ext__unmet_need_rate",
+   "column": "ext__unmet_need_rate",
+   "transform": "none",
+   "label_en": "ext__unmet_need_rate",
+   "label_ko": "ext__unmet_need_rate",
+   "expected_direction": "",
+   "role": "candidate_sensitivity",
+   "raw_key": "ext__unmet_need_rate"
+  },
+  "ext__dx_htn_share": {
+   "key": "ext__dx_htn_share",
+   "column": "ext__dx_htn_share",
+   "transform": "none",
+   "label_en": "ext__dx_htn_share",
+   "label_ko": "ext__dx_htn_share",
+   "expected_direction": "",
+   "role": "candidate_sensitivity",
+   "raw_key": "ext__dx_htn_share"
+  },
+  "ext__dx_dm_share": {
+   "key": "ext__dx_dm_share",
+   "column": "ext__dx_dm_share",
+   "transform": "none",
+   "label_en": "ext__dx_dm_share",
+   "label_ko": "ext__dx_dm_share",
+   "expected_direction": "",
+   "role": "candidate_sensitivity",
+   "raw_key": "ext__dx_dm_share"
+  },
+  "hit_and_run_rate": {
+   "key": "hit_and_run_rate",
+   "column": "eloc__DT_1YL13901__뺑소니교통사고율＜br＞(A÷B×100)",
+   "transform": "none",
+   "label_en": "Hit-and-run traffic accident rate (%)",
+   "label_ko": "뺑소니 교통사고율",
+   "expected_direction": "",
+   "role": "negative",
+   "raw_key": "eloc__DT_1YL13901__뺑소니교통사고율＜br＞(A÷B×100)"
+  },
+  "fires_per_10000": {
+   "key": "fires_per_10000",
+   "column": "eloc__DT_1YL21081__주민만명당화재발생건수＜br＞(A÷B×10000)",
+   "transform": "none",
+   "label_en": "Fires per 10000 residents",
+   "label_ko": "주민 만명당 화재 건수",
+   "expected_direction": "",
+   "role": "negative",
+   "raw_key": "eloc__DT_1YL21081__주민만명당화재발생건수＜br＞(A÷B×10000)"
+  },
+  "waste_recycling_rate": {
+   "key": "waste_recycling_rate",
+   "column": "eloc__DT_1YL21311__생활계폐기물재활용률＜br＞(A÷B×100)",
+   "transform": "none",
+   "label_en": "Household waste recycling rate (%)",
+   "label_ko": "생활계폐기물 재활용률",
+   "expected_direction": "",
+   "role": "negative",
+   "raw_key": "eloc__DT_1YL21311__생활계폐기물재활용률＜br＞(A÷B×100)"
+  }
+ },
+ "rules": {
+  "waic_tol": 4.0,
+  "cpo_fail_frac": 0.05,
+  "main_set": "S1_narrative_full",
+  "vif_threshold": 10.0,
+  "vif_action": "report",
+  "multiverse_n": 200,
+  "windows": {
+   "W1_2011-17": [
+    2011,
+    2017
+   ],
+   "W2_2018-24": [
+    2018,
+    2024
+   ]
+  },
+  "covid_post_from": 2020,
+  "years": [
+   2011,
+   2024
+  ],
+  "raw_rules": {
+   "likelihood": "forced-only 모형 WAIC 낮은 쪽(Poisson/NB)",
+   "set_choice": "WAIC 최소, 4 이내면 변수 적은 세트",
+   "credible": "95% CrI 1 제외",
+   "vif_drop": 10,
+   "multiverse_specs": 200,
+   "years": [
+    2011,
+    2024
+   ],
+   "main_model_note": "주모형 = S1_narrative_full(가설 11 + 강제통제 5). 세트를 다시 바꾸지 않음. VIF>10 유지·보고.",
+   "windows": {
+    "W1_2011-17": [
+     2011,
+     2017
+    ],
+    "W2_2018-24": [
+     2018,
+     2024
+    ]
+   },
+   "windows_note": "2018 일반건강검진 개편(지질 검사 주기 변경)을 가로지르지 않도록 2011-17·2018-24 창(25호와 같은 경계, 결과 전 고정). 전국 유질환자 비율은 1.66→12.61% 매끄러운 증가, 계단 없음(연도별 전국 율로 E가 흡수)"
+  }
+ },
+ "note": "LIPT = 국가 일반건강검진 판정에서 '유질환자 - 이상지질혈증'(문진상 이미 진단받고 약물치료 중)으로 분류된 인원, 분모 판정 수검자. 성×16연령 간접표준화(99L2). 질문 = 이미 진단·치료 중인 이상지질혈증이 어디에 몰리는가(치료 도달·관리 부담의 지리)와 그 구조 요인. 24호(고혈압·당뇨 진단 인지)·25호(미진단 고혈압·당뇨 의심)와 달리 지질 축이며 진단 '이후' 단계. 결과와 겹치는 검진 지질 지표(이상지질 질환의심·정상B 이상지질관리)는 결과의 짝이라 가설에서 제외하고 사전지정 보조 분석(치료–의심 격차)으로만 씀. 고혈압·당뇨 유질환자 비율(스타틴 적응증 동반)은 민감도 전용. 사전지정 민감도: E_pop(81 S10)·E_std_age(s8)·80+ 없음(s2)·577 그래프(s577)·창 2011-17/2018-24.",
+ "fixed_on": "2026-11-11 (공변량 모형 적합 전 고정. 런북 15 6-B를 처음부터 적용: 풀은 진단·치료된 이상지질혈증 역학(치료 도달·검진 선택, 지질 위험요인, 박탈·가구) 중심, 신체활동은 위험요인 축의 세 지표. 공간 선별은 강제통제만 BYM2)",
+ "source_json": "sets_LIPT_std3.json",
+ "version": "std3",
+ "suffix": "_std3",
+ "offset_E_column": "E_std",
+ "offset_E_file": "LIPT_Estd3.csv",
+ "offset_E_sensitivity_column": "E_pop",
+ "offset_E_label": "sex- and age-standardised E (2 sexes x 16 age bands to 85+, national screening-based treated-dyslipidaemia rates DT_35007_N106/N099; district examinee age structure approximated from resident population x national uptake, sex totals observed)",
+ "sets_after_vif": {
+  "S1_narrative_full": [
+   "im_specialists_per_100k",
+   "screening_uptake",
+   "tertiary_educated_share",
+   "obesity_rate",
+   "high_risk_drinking_rate",
+   "current_smoking_rate",
+   "walking_practice_rate",
+   "moderate_pa_rate",
+   "public_sports_facilities_per_100k",
+   "basic_livelihood_rate",
+   "single_person_household_share"
+  ],
+  "S2_care_reach_selection": [
+   "im_specialists_per_100k",
+   "screening_uptake",
+   "tertiary_educated_share"
+  ],
+  "S3_lipid_risk_factors": [
+   "obesity_rate",
+   "high_risk_drinking_rate",
+   "current_smoking_rate",
+   "walking_practice_rate",
+   "moderate_pa_rate",
+   "public_sports_facilities_per_100k"
+  ],
+  "S4_structure": [
+   "basic_livelihood_rate",
+   "tertiary_educated_share",
+   "single_person_household_share"
+  ],
+  "S5_core": [
+   "im_specialists_per_100k",
+   "screening_uptake",
+   "obesity_rate",
+   "walking_practice_rate",
+   "moderate_pa_rate",
+   "basic_livelihood_rate"
+  ]
+ }
+}

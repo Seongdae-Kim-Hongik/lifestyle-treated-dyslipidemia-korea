@@ -1,0 +1,23 @@
+{
+  "title": "Do lifestyle risk factors explain where Koreans report treated dyslipidemia? Analysis code",
+  "upload_type": "software",
+  "version": "1.0.0",
+  "creators": [
+    {
+      "name": "Kim, Seongdae",
+      "affiliation": "Hongik University",
+      "orcid": "0000-0002-1525-0091"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "dyslipidemia",
+    "health screening",
+    "small-area analysis",
+    "Bayesian spatio-temporal model",
+    "INLA",
+    "Korea"
+  ],
+  "description": "Analysis code (code only, no data) for a district-level spatio-temporal analysis of self-reported treated dyslipidemia among Korean health-screening attendees, 2011-2024."
+}

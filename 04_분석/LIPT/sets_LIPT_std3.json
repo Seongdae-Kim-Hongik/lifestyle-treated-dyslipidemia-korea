@@ -1,0 +1,197 @@
+{
+ "tag": "LIPT",
+ "outcome_column": "chk__lipt_cases",
+ "outcome_label_en": "People already diagnosed with and receiving drug treatment for dyslipidaemia at the National General Health Screening (classified as 'existing disease - dyslipidaemia'; NHIS health screening statistics, annual)",
+ "disease_en": "Treated dyslipidaemia among screening examinees (care burden of diagnosed dyslipidaemia)",
+ "disease_ko": "검진 이상지질혈증 유질환자(이미 진단·치료 중인 이상지질혈증 부담)",
+ "outcome_note": "DT_35007_N105 '이상지질혈증' 유질환자, 2011-2024 전부, 분모 = 판정 수검자(DT_35007_N098 계), 세종 2012-23 미관측(원표) → 228곳 · 결과 열은 99L2가 N105 시군구 성별 행을 직접 합한 값(기준 SQLite·MASTER는 하위 구만 있는 7칸 빈칸: 부천 2016, 용인·창원·천안 2011-12; 나머지 3,185칸은 SQLite와 차이 0)",
+ "offset": "chk__lipt_examinees",
+ "exclude_years": [],
+ "forced": [
+  "eloc__DT_1YL20421E__1인당도시지역면적현황__도시지역인구",
+  "eloc__DT_1YL20981__인구천명당의료기관종사의사수＜br＞(A÷B×1000)",
+  "eloc__DT_1YL20701__남녀성비＜br＞(A÷B×100)",
+  "eloc__DT_1YL20891__재정자주도(세입과목개편전)",
+  "ext__pop80_share"
+ ],
+ "negative_controls": [
+  "eloc__DT_1YL13901__뺑소니교통사고율＜br＞(A÷B×100)",
+  "eloc__DT_1YL21081__주민만명당화재발생건수＜br＞(A÷B×10000)",
+  "eloc__DT_1YL21311__생활계폐기물재활용률＜br＞(A÷B×100)"
+ ],
+ "offset_E_column": "E_std",
+ "offset_E_file": "LIPT_Estd3.csv",
+ "offset_E_label": "sex- and age-standardised E (2 sexes x 16 age bands to 85+, national screening-based treated-dyslipidaemia rates DT_35007_N106/N099; district examinee age structure approximated from resident population x national uptake, sex totals observed)",
+ "offset_E_sensitivity_column": "E_pop",
+ "offset_E_label_sensitivity": "population-denominator sex- and age-standardised E (screening-selection sensitivity)",
+ "graph": "593-edge contact graph (ARTH 복사), ST_GRAPH=04_분석/LIPT/graph_593.graph",
+ "population_override": [
+  {
+   "year": 2023,
+   "fbd_region": "경상남도창원시",
+   "population": 1009038,
+   "source": "KOSIS DT_1YL20651E 2023 통합창원시 계; FBD_DATA_ZIP/2023.csv 창원 블록이 2022값 복사(유방암 11/4 population_final_audit)"
+  }
+ ],
+ "sensitivity_only_extra": [
+  "ext__unmet_need_rate",
+  "ext__dx_htn_share",
+  "ext__dx_dm_share"
+ ],
+ "version": "std3 (outcome-epidemiology set: care reach and screening selection, lipid risk factors including physical activity, deprivation-household)",
+ "fixed_on": "2026-11-11 (공변량 모형 적합 전 고정. 런북 15 6-B를 처음부터 적용: 풀은 진단·치료된 이상지질혈증 역학(치료 도달·검진 선택, 지질 위험요인, 박탈·가구) 중심, 신체활동은 위험요인 축의 세 지표. 공간 선별은 강제통제만 BYM2)",
+ "sets": {
+  "S1_narrative_full": [
+   "ext__im_specialists_per100k",
+   "chk__수검률",
+   "ext__tertiary_educated_share",
+   "kchs__DT_H_OBE_OBE__SR",
+   "kchs__DT_117075_H_DR_HIGH_WH__SR",
+   "kchs__DT_H_SM__SR",
+   "kchs__DT_H_EX_WALK__SR",
+   "kchs__DT_H_EX_PHY__SR",
+   "fac__total",
+   "ext__basic_livelihood_rate",
+   "eloc__DT_1YL21161__1인가구비율＜br＞(A÷B×100)"
+  ],
+  "S2_care_reach_selection": [
+   "ext__im_specialists_per100k",
+   "chk__수검률",
+   "ext__tertiary_educated_share"
+  ],
+  "S3_lipid_risk_factors": [
+   "kchs__DT_H_OBE_OBE__SR",
+   "kchs__DT_117075_H_DR_HIGH_WH__SR",
+   "kchs__DT_H_SM__SR",
+   "kchs__DT_H_EX_WALK__SR",
+   "kchs__DT_H_EX_PHY__SR",
+   "fac__total"
+  ],
+  "S4_structure": [
+   "ext__basic_livelihood_rate",
+   "ext__tertiary_educated_share",
+   "eloc__DT_1YL21161__1인가구비율＜br＞(A÷B×100)"
+  ],
+  "S5_core": [
+   "ext__im_specialists_per100k",
+   "chk__수검률",
+   "kchs__DT_H_OBE_OBE__SR",
+   "kchs__DT_H_EX_WALK__SR",
+   "kchs__DT_H_EX_PHY__SR",
+   "ext__basic_livelihood_rate"
+  ]
+ },
+ "transform": {
+  "eloc__DT_1YL20421E__1인당도시지역면적현황__도시지역인구": "share_of_pop(도시지역인구÷population(마스터))",
+  "eloc__DT_1YL20981__인구천명당의료기관종사의사수＜br＞(A÷B×1000)": "none",
+  "eloc__DT_1YL20701__남녀성비＜br＞(A÷B×100)": "none",
+  "eloc__DT_1YL20891__재정자주도(세입과목개편전)": "none",
+  "ext__pop80_share": "none",
+  "eloc__DT_1YL13901__뺑소니교통사고율＜br＞(A÷B×100)": "none",
+  "eloc__DT_1YL21081__주민만명당화재발생건수＜br＞(A÷B×10000)": "none",
+  "eloc__DT_1YL21311__생활계폐기물재활용률＜br＞(A÷B×100)": "none",
+  "ext__im_specialists_per100k": "log1p",
+  "chk__수검률": "none",
+  "ext__tertiary_educated_share": "none",
+  "kchs__DT_H_OBE_OBE__SR": "none",
+  "kchs__DT_117075_H_DR_HIGH_WH__SR": "none",
+  "kchs__DT_H_SM__SR": "none",
+  "kchs__DT_H_EX_WALK__SR": "none",
+  "kchs__DT_H_EX_PHY__SR": "none",
+  "fac__total": "per100k",
+  "ext__basic_livelihood_rate": "none",
+  "eloc__DT_1YL21161__1인가구비율＜br＞(A÷B×100)": "none",
+  "ext__unmet_need_rate": "none",
+  "ext__dx_htn_share": "none",
+  "ext__dx_dm_share": "none"
+ },
+ "expected_direction": {
+  "ext__im_specialists_per100k": "+ (내과 전문의 밀도: 지질 검사·스타틴 처방 기회 → 진단·치료 도달 많음)",
+  "chk__수검률": "- (일반검진 수검률: 수검률이 높으면 저위험·무치료자까지 수검 → 수검자 중 유질환자 비율 낮음, 검진 선택 축)",
+  "ext__tertiary_educated_share": "+ (대졸 이상 비율: 건강 문해력·의료 이용 → 진단·치료 도달 많음)",
+  "kchs__DT_H_OBE_OBE__SR": "+ (자가보고 비만율: 이상지질혈증 발생의 주된 수정 가능 위험)",
+  "kchs__DT_117075_H_DR_HIGH_WH__SR": "+ (고위험음주: 고중성지방혈증)",
+  "kchs__DT_H_SM__SR": "+ (현재흡연: HDL 저하·죽상경화 위험 → 이상지질혈증 진단)",
+  "kchs__DT_H_EX_WALK__SR": "- (걷기 실천: 중성지방·HDL 개선 → 이상지질혈증 적음)",
+  "kchs__DT_H_EX_PHY__SR": "- (중강도 이상 신체활동: 지질 개선)",
+  "fac__total": "- (공공체육시설 밀도: 신체활동 환경)",
+  "ext__basic_livelihood_rate": "- (기초생활 수급률: 박탈 → 진단·치료 도달 낮음(치료 격차))",
+  "eloc__DT_1YL21161__1인가구비율＜br＞(A÷B×100)": "- (1인 가구: 진료 권유·지지 부족 → 진단·치료 도달 낮음)"
+ },
+ "evidence": {
+  "ext__im_specialists_per100k": "kim2024dyslipidemia_factsheet; basu2019primarycare",
+  "chk__수검률": "yang2013regional",
+  "ext__tertiary_educated_share": "ncdrisc2020cholesterol; kim2024dyslipidemia_factsheet",
+  "kchs__DT_H_OBE_OBE__SR": "klop2013obesity_dyslipidemia; gbd_risk_factors",
+  "kchs__DT_117075_H_DR_HIGH_WH__SR": "brien2011alcohol",
+  "kchs__DT_H_SM__SR": "craig1989smoking_lipids",
+  "kchs__DT_H_EX_WALK__SR": "kelley2004walking_lipids",
+  "kchs__DT_H_EX_PHY__SR": "mann2014exercise_lipids",
+  "fac__total": "sallis2016pa_environment",
+  "ext__basic_livelihood_rate": "kim2024dyslipidemia_factsheet; agardh2011ses_dm",
+  "eloc__DT_1YL21161__1인가구비율＜br＞(A÷B×100)": "kim2024living"
+ },
+ "rules": {
+  "likelihood": "forced-only 모형 WAIC 낮은 쪽(Poisson/NB)",
+  "set_choice": "WAIC 최소, 4 이내면 변수 적은 세트",
+  "credible": "95% CrI 1 제외",
+  "vif_drop": 10,
+  "multiverse_specs": 200,
+  "years": [
+   2011,
+   2024
+  ],
+  "main_model_note": "주모형 = S1_narrative_full(가설 11 + 강제통제 5). 세트를 다시 바꾸지 않음. VIF>10 유지·보고.",
+  "windows": {
+   "W1_2011-17": [
+    2011,
+    2017
+   ],
+   "W2_2018-24": [
+    2018,
+    2024
+   ]
+  },
+  "windows_note": "2018 일반건강검진 개편(지질 검사 주기 변경)을 가로지르지 않도록 2011-17·2018-24 창(25호와 같은 경계, 결과 전 고정). 전국 유질환자 비율은 1.66→12.61% 매끄러운 증가, 계단 없음(연도별 전국 율로 E가 흡수)"
+ },
+ "note": "LIPT = 국가 일반건강검진 판정에서 '유질환자 - 이상지질혈증'(문진상 이미 진단받고 약물치료 중)으로 분류된 인원, 분모 판정 수검자. 성×16연령 간접표준화(99L2). 질문 = 이미 진단·치료 중인 이상지질혈증이 어디에 몰리는가(치료 도달·관리 부담의 지리)와 그 구조 요인. 24호(고혈압·당뇨 진단 인지)·25호(미진단 고혈압·당뇨 의심)와 달리 지질 축이며 진단 '이후' 단계. 결과와 겹치는 검진 지질 지표(이상지질 질환의심·정상B 이상지질관리)는 결과의 짝이라 가설에서 제외하고 사전지정 보조 분석(치료–의심 격차)으로만 씀. 고혈압·당뇨 유질환자 비율(스타틴 적응증 동반)은 민감도 전용. 사전지정 민감도: E_pop(81 S10)·E_std_age(s8)·80+ 없음(s2)·577 그래프(s577)·창 2011-17/2018-24.",
+ "extra_columns": {
+  "ext__pop80_share": [
+   "LIPT_Estd3.csv",
+   "pop80_share_raw"
+  ],
+  "ext__basic_livelihood_rate": [
+   "EXT_canonical_pool_LIPT_261111.csv",
+   "basic_livelihood_rate"
+  ],
+  "ext__im_specialists_per100k": [
+   "EXT_canonical_pool_LIPT_261111.csv",
+   "im_specialists_per100k"
+  ],
+  "ext__tertiary_educated_share": [
+   "EXT_canonical_pool_LIPT_261111.csv",
+   "tertiary_educated_share"
+  ],
+  "ext__unmet_need_rate": [
+   "EXT_canonical_pool_LIPT_261111.csv",
+   "unmet_need_rate"
+  ],
+  "ext__dx_htn_share": [
+   "EXT_undx_dxshare_261110.csv",
+   "dx_htn_share"
+  ],
+  "ext__dx_dm_share": [
+   "EXT_undx_dxshare_261110.csv",
+   "dx_dm_share"
+  ],
+  "chk__lipt_examinees": [
+   "LIPT_Estd3.csv",
+   "examinees"
+  ],
+  "chk__lipt_cases": [
+   "LIPT_Estd3.csv",
+   "cases"
+  ]
+ },
+ "pool_note": "수급률 2021-23 양쪽 규칙(2020·2024 평균의 20% 미만 또는 5배 초과) 33칸 정정(99c_extra_canonical_pool_lipt.py, 15·19 맨 위 절 규칙). 정정 뒤 비 0.92-1.23."
+}
